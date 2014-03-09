@@ -61,8 +61,6 @@ var app = new function() {
 
     /**
      * Handles all user events and adapts them to the controller.
-     *
-     * @constructor
      */
     var Manipulator = function() {
 
@@ -292,7 +290,7 @@ var app = new function() {
 
     };
 
-    var treeRoot = function() {
+    var treeRoot = function(data) {
 
         var _this = this,
             beams = [],
@@ -353,7 +351,7 @@ var app = new function() {
 
         var init = function() {
 
-            centerNode = new Node(startX, startY, startR);
+            centerNode = new Node(0, 0, 80);
 
         };
 
@@ -382,7 +380,7 @@ var app = new function() {
         manipulator = new Manipulator();
         manipulator.initialize();
 
-        new treeRoot();
+        new treeRoot(dataAdapter);
 
     }
 

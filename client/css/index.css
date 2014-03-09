@@ -58,3 +58,43 @@ html, body {
     word-break: break-all;
     padding: 3px;
 }
+
+.link {
+    position: absolute;
+    height: 6px;
+    width: 30px; /* @override */
+    background: rgb(68, 60, 71);
+    box-shadow: 0 0 3px 2px rgb(115, 233, 255);
+    padding: 0 15px 0 15px;
+}
+
+.link > div { /* padding wrapper */
+    position: relative;
+    height: 100%;
+}
+
+.link > div > div { /* link title block */
+    position: absolute;
+    top: -11px;
+    height: 30px;
+    min-width: 30px;
+    max-width: 100%;
+    background: rgb(68, 60, 71);
+    box-shadow: 0 0 3px 2px rgb(115, 233, 255);
+    border-radius: 2px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.link > div > div > div { /* table */
+    width: 100%;
+    height: 100%;
+    display: table;
+}
+
+.link > div > div > div > span { /* table-cell */
+    display: table-cell;
+    vertical-align: middle;
+    text-align: center;
+    padding: 0 2px 0 2px;
+}
