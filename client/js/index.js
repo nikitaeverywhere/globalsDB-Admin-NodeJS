@@ -292,7 +292,7 @@ var app = new function() {
 
     };
 
-    var treeRoot = function(startX, startY, startR) {
+    var treeRoot = function() {
 
         var _this = this,
             beams = [],
@@ -351,70 +351,9 @@ var app = new function() {
 
         };
 
-        var optimizeBeams = function() {
-
-            /**
-             * Finds node closest as possible position on the beam.
-             * @uses startR
-             *
-             * @param beamLeft
-             * @param beam
-             * @param beamRight
-             */
-            var fixNode = function(beamLeft, beam, beamRight) {
-
-                if (!beam) return;
-
-                var NODES_PADDING = 5,
-                    CONNECTION_WIDTH = 5,
-                    angle = beam.getAngle(),
-                    r1 = beamLeft?beamLeft.getNode().getR() + NODES_PADDING:0,
-                    r = beam.getNode().getR() + NODES_PADDING,
-                    angleLeft = (beamLeft)?Geometry.angleDifference(beamLeft.getAngle(), angle):Math.PI/2,
-                    angleRight = (beamRight)?Geometry.angleDifference(angle, beamRight.getAngle()):Math.PI/2,
-                    minDistanceLimit = Math.max(
-                        (beamLeft)?(r1 + CONNECTION_WIDTH)/Math.sin(angleLeft):0,
-                        (beamRight)?(r + CONNECTION_WIDTH)/Math.sin(angleRight):0,
-                        startR + r
-                    ),
-                    l = beamLeft?beamLeft.getR()*angleLeft:0,
-                    R = beamLeft?beamLeft.getR()*Math.cos(angleLeft):0,
-                    delta = Math.sqrt(Math.max(Math.pow(r1 + r, 2) - Math.pow(l, 2), 0)),
-                    nearCondition = R - delta;
-
-                if (nearCondition > minDistanceLimit) { // near condition
-                    beam.setRadius(minDistanceLimit);
-                } else { // far condition
-                    beam.setRadius(Math.max(
-                        R + delta,
-                        minDistanceLimit
-                    ));
-                }
-
-            };
-
-            for (var i = 0; i < beams.length; i++) {
-
-                fixNode(
-                    beams[i - 1] || null,
-                    beams[i] || null,
-                    beams[i + 1] || null
-                );
-
-            }
-
-        };
-
         var init = function() {
 
             centerNode = new Node(startX, startY, startR);
-
-            for (var i = 0; i < BIM_NUMBER; i++) {
-                if (i === BIM_NUMBER - 1) continue;
-                beams[i] = new Beam(Math.PI*2*i/BIM_NUMBER, startR + 200, new Node(0, 0, 10 + Math.random()*30));
-            }
-
-            optimizeBeams();
 
         };
 
@@ -443,7 +382,7 @@ var app = new function() {
         manipulator = new Manipulator();
         manipulator.initialize();
 
-        new treeRoot(0, 0, 40);
+        new treeRoot();
 
     }
 

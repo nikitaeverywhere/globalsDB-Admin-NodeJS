@@ -56,10 +56,10 @@ var dataAdapter = new function() {
             if (typeof obj !== "object") obj = null;
         } while (subscripts[i] && obj);
 
-        for (i in obj) { // return object properties list
-            if (!obj.hasOwnProperty(i)) continue;
-            if (from) { if (i !== from) continue; else from = false }
-            if (number > 0) { number--; arr.push(i); }
+        for (var u in obj) { // return object properties list
+            if (!obj.hasOwnProperty(u)) continue;
+            if (from) { if (u !== from) continue; else from = false }
+            if (number > 0) { number--; arr.push(u); }
         }
 
         return arr;
