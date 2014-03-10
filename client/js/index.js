@@ -290,68 +290,162 @@ var app = new function() {
 
     };
 
-    var treeRoot = function(data) {
+    /**
+     * Connects parentNode and node with position controlling under node.
+     *
+     * @param parentNode
+     * @param node
+     * [ @param initialAngle ]
+     * [ @param initialRadius ]
+     *
+     * @constructor
+     */
+    var Beam = function(parentNode, node, initialAngle, initialRadius) {
 
-        var _this = this,
-            beams = [],
-            centerNode = null,
-            BIM_NUMBER = 17 + Math.random()*20;
+        var visualBeamProps = {
+                angle: Geometry.normalizeAngle(initialAngle || 0),
+                r: initialRadius || 100,
+                relativeX: manipulator.getRelativeCenter().x,
+                relativeY: manipulator.getRelativeCenter().y,
+                WIDTH_EXPAND: 2,
+                HALF_HEIGHT: 3 // @override
+            },
+            element = null;
 
-        /**
-         * Uses centerNode
-         *
-         * @param initialDirection
-         * @param initialRadius
-         * @param node
-         * @constructor
-         */
-        var Beam = function(initialDirection, initialRadius, node) {
+        var createBeamElement = function() {
 
-            var visualBeamProps = {
-                    dir: initialDirection,
-                    r: initialRadius
-                };
+            var el = document.createElement("DIV");
+            el.className = "link";
+            el.innerHTML = "<div><div><div><span>Loading this data...</span></div></div></div>"; // @structured
+            DOM_ELEMENTS.FIELD.appendChild(el);
 
-            this.getNode = function() { return node };
-            this.getAngle = function() { return visualBeamProps.dir };
-            this.getR = function() { return visualBeamProps.r };
+            visualBeamProps.HALF_HEIGHT = parseFloat(el.clientHeight)/2 || 3;
 
-            var updateView = function() {
+            return el;
 
-                node.setPosition(
-                    centerNode.getX() + visualBeamProps.r*Math.cos(visualBeamProps.dir),
-                    centerNode.getY() + visualBeamProps.r*Math.sin(visualBeamProps.dir)
-                );
+        };
 
-            };
+        this.getNode = function() { return node; };
+        this.getParentNode = function() { return parentNode; };
+        this.getAngle = function() { return visualBeamProps.angle; };
+        this.getRadius = function() { return visualBeamProps.r; };
 
-            this.setAngle = function(direction) {
+        var updateElementPosition = function() {
 
-                visualBeamProps.dir = direction;
-                updateView();
+            if (!parentNode || !node) return;
 
-            };
+            /*
+            * The transformations here based on relative y-shift within angle (for line height/2) pixels and rotation
+            * around the left top corner of "link" box for given angle. Note that constants WIDTH_EXPAND and HALF_HEIGHT
+            * are dependent from CSS.
+            **/
 
-            this.setRadius = function(radius) {
+            var x1 = parentNode.getX() - visualBeamProps.HALF_HEIGHT*Math.cos(visualBeamProps.angle + Math.PI/2),
+                y1 = parentNode.getY() - visualBeamProps.HALF_HEIGHT*Math.sin(visualBeamProps.angle + Math.PI/2),
+                r = parentNode.getR() - visualBeamProps.WIDTH_EXPAND,
+                w = Math.sqrt(Math.pow(node.getX() - parentNode.getX(), 2) +
+                    Math.pow(node.getY() - parentNode.getY(), 2)) - r - node.getR() + visualBeamProps.WIDTH_EXPAND*2,
+                boxElement = element.childNodes[0].childNodes[0];
 
-                visualBeamProps.r = radius;
-                updateView();
+            if (w > visualBeamProps.WIDTH_EXPAND) {
+                if (w < 60) {
+                    boxElement.style.display = "none";
+                } else {
+                    boxElement.style.display = "block";
+                }
+                element.style.display = "block";
+                element.style.width = Math.round(w) + "px";
+            } else {
+                element.style.display = "none";
+                return;
+            }
 
-            };
+            if (USE_HARDWARE_ACCELERATION) {
 
-            var init = function() {
+                element.style["transform"] = element.style["-ms-transform"] = element.style["-o-transform"] =
+                    element.style["-moz-transform"] = element.style["-webkit-transform"] = "translate3d(" +
+                        (visualBeamProps.relativeX + x1 + r*Math.cos(visualBeamProps.angle)) + "px, " +
+                        (visualBeamProps.relativeY + y1 + r*Math.sin(visualBeamProps.angle)) + "px, 0) rotate(" +
+                        visualBeamProps.angle + "rad)";
+                boxElement.style["transform"] = boxElement.style["-ms-transform"] = boxElement.style["-o-transform"] =
+                    boxElement.style["-moz-transform"] = boxElement.style["-webkit-transform"] = "rotate(" +
+                        ((visualBeamProps.angle > Math.PI/2 && visualBeamProps.angle < Math.PI + Math.PI/2)?180:0) + "deg)";
 
-                updateView();
+            } else {
 
-            };
+                element.style.visibility = "hidden"; // @improve: svg
 
-            init();
+            }
+
+        };
+
+        var updateView = function() {
+
+            node.setPosition(
+                parentNode.getX() + visualBeamProps.r*Math.cos(visualBeamProps.angle),
+                parentNode.getY() + visualBeamProps.r*Math.sin(visualBeamProps.angle)
+            );
+            updateElementPosition();
+
+        };
+
+        this.setAngle = function(direction) {
+
+            visualBeamProps.angle = direction;
+            updateView();
+
+        };
+
+        this.setRadius = function(radius) {
+
+            visualBeamProps.r = radius;
+            updateView();
 
         };
 
         var init = function() {
 
+            element = createBeamElement();
+            updateView();
+
+        };
+
+        init();
+
+    };
+
+    var treeRoot = function(data) {
+
+        var _this = this,
+            beams = [],
+            centerNode = null,
+            BEAM_NUMBER = 14;
+
+        var init = function() {
+
             centerNode = new Node(0, 0, 80);
+
+            // @sample
+            var b = new Beam(centerNode, new Node(0, 0, 70), Math.random()*Math.PI*2, 400);
+            var d = 1;
+
+            setInterval(function(){
+
+                b.setRadius(b.getRadius() - d*2);
+                if (b.getRadius() < 160) d = -1;
+                if (b.getRadius() > 400) d = 1;
+
+            }, 25);
+
+            var b2 = new Beam(centerNode, new Node(0, 0, 70), Math.random()*Math.PI*2, 400);
+
+            setInterval(function(){
+
+                b2.setRadius(b2.getRadius() - d*2);
+                if (b.getRadius() < 160) d = -1;
+                if (b.getRadius() > 400) d = 1;
+
+            }, 25);
 
         };
 

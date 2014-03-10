@@ -42,6 +42,7 @@ html, body {
     border-radius: 9999px;
     background: rgb(68, 60, 71);
     box-shadow: 0 0 3px 2px rgb(115, 233, 255);
+    z-index: 11;
 }
 
 .node > div {
@@ -65,11 +66,18 @@ html, body {
     width: 30px; /* @override */
     background: rgb(68, 60, 71);
     box-shadow: 0 0 3px 2px rgb(115, 233, 255);
-    padding: 0 15px 0 15px;
+    z-index: 10;
+
+    transform-origin: 0 0;
+    -o-transform-origin: 0 0;
+    -ms-transform-origin: 0 0;
+    -moz-transform-origin: 0 0;
+    -webkit-transform-origin: 0 0;
 }
 
 .link > div { /* padding wrapper */
     position: relative;
+    margin: 0 15px 0 15px;
     height: 100%;
 }
 
@@ -96,5 +104,7 @@ html, body {
     display: table-cell;
     vertical-align: middle;
     text-align: center;
+    white-space: nowrap;
     padding: 0 2px 0 2px;
+    font-size: 16px;
 }
