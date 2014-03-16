@@ -22,6 +22,7 @@ var app = new function() {
             FIELD: null
         },
         USE_HARDWARE_ACCELERATION = false,
+        DATA_ADAPTER = dataAdapter,
         manipulator;
 
     var setElements = function() {
@@ -60,7 +61,7 @@ var app = new function() {
     };
 
     /**
-     * Handles all user events and adapts them to the controller.
+     * Handles all user events and adapts them to the controller. Also manipulates viewport.
      */
     var Manipulator = function() {
 
@@ -69,6 +70,7 @@ var app = new function() {
             VIEWPORT_HEIGHT = window.innerHeight,
             VIEW_X = 0,
             VIEW_Y = 0,
+            VIEWPORT_SCALE = 1,
             WORLD_WIDTH = 100000,
             WORLD_HEIGHT = 100000,
             touchObject = {
@@ -100,6 +102,21 @@ var app = new function() {
         };
 
         /**
+         * Performs relative scale for viewport.
+         */
+        this.scaleView = function(delta) {
+
+            var element = DOM_ELEMENTS.FIELD;
+
+            VIEWPORT_SCALE += delta;
+
+            element.style["transform"] = element.style["-ms-transform"] = element.style["-o-transform"] =
+                element.style["-moz-transform"] = element.style["-webkit-transform"] =
+                    "scale(" + VIEWPORT_SCALE + ")";
+
+        };
+
+        /**
          * Centers the viewport on a (x, y) coordinates.
          *
          * @param x
@@ -126,7 +143,11 @@ var app = new function() {
 
             this.moved = function(e) { // limited while pressed
 
-                blockEvent(e.event);
+                if (!e.event.changedTouches || e.event.changedTouches.length < 2) {
+                    blockEvent(e.event);
+                } else {
+                    _this.scaleView(0);
+                }
                 setViewCenter(e.ovx + (e.ox - e.x), e.ovy + (e.oy - e.y));
 
             };
@@ -213,9 +234,22 @@ var app = new function() {
 
     };
 
-    var Node = function(startX, startY, startR) {
+    /**
+     * Node element.
+     *
+     * @param parentNode {Node} Parent node
+     * @param index {Array} Node index
+     * [ @param startX ]
+     * [ @param startY ]
+     * [ @param startR ]
+     * @constructor
+     */
+    var Node = function(parentNode, index, startX, startY, startR) {
 
         var _this = this,
+            PARENT_NODE = (parentNode instanceof Node)?parentNode:null,
+            CHILD_NODES = [],
+            INDEX = index,
             visualNodeProps = {
                 x: 0,
                 y: 0,
@@ -223,12 +257,73 @@ var app = new function() {
                 relativeX: manipulator.getRelativeCenter().x,
                 relativeY: manipulator.getRelativeCenter().y
             },
+            value = "",
             element = null;
+
+        this.setPosition = function(x, y) {
+
+            visualNodeProps.x = x;
+            visualNodeProps.y = y;
+            updateView();
+
+        };
+
+        this.setRadius = function(r) {
+
+            visualNodeProps.r = r;
+            updateView();
+
+        };
+
+        this.setChild = function(node) {
+
+            if (!(node instanceof Node)) return;
+
+            for (var i in CHILD_NODES) {
+                if (!CHILD_NODES.hasOwnProperty(i)) continue;
+                if (CHILD_NODES[i] === node) return;
+            }
+
+            CHILD_NODES.push(node);
+
+        };
+
+        this.getX = function() { return visualNodeProps.x; };
+        this.getY = function() { return visualNodeProps.y; };
+        this.getR = function() { return visualNodeProps.r; };
+        this.getParent = function() { return PARENT_NODE; };
+        this.getIndex = function() { return INDEX; };
+
+        this.getPath = function() {
+
+            var path = [INDEX],
+                parentNode = PARENT_NODE;
+
+            while (parentNode) {
+                path.unshift(parentNode.getIndex());
+                parentNode = parentNode.getParent();
+            }
+
+            return path;
+
+        };
+
+        /**
+         * Joins node to the parent node.
+         */
+        var joinParent = function(parentNode) {
+
+            if (!(parentNode instanceof Node)) return;
+
+            parentNode.setChild(_this);
+
+        };
 
         var createNodeElement = function() {
 
             var el = document.createElement("DIV");
             el.className = "node";
+            el.innerHTML = "<div><span>" + value + "</span></div>";
             DOM_ELEMENTS.FIELD.appendChild(el);
             return el;
 
@@ -258,26 +353,11 @@ var app = new function() {
 
         };
 
-        this.setPosition = function(x, y) {
-
-            visualNodeProps.x = x;
-            visualNodeProps.y = y;
-            updateView();
-
-        };
-
-        this.setRadius = function(r) {
-
-            visualNodeProps.r = r;
-            updateView();
-
-        };
-
-        this.getX = function() { return visualNodeProps.x };
-        this.getY = function() { return visualNodeProps.y };
-        this.getR = function() { return visualNodeProps.r };
-
         var init = function() {
+
+            joinParent(PARENT_NODE);
+
+            value = DATA_ADAPTER.getValue(_this.getPath());
 
             element = createNodeElement();
             _this.setPosition(startX, startY);
@@ -391,7 +471,7 @@ var app = new function() {
 
         this.setAngle = function(direction) {
 
-            visualBeamProps.angle = direction;
+            visualBeamProps.angle = Geometry.normalizeAngle(direction);
             updateView();
 
         };
@@ -414,20 +494,24 @@ var app = new function() {
 
     };
 
+    /**
+     * Tree root has basic tree control capabilities.
+     *
+     * @param data
+     */
     var treeRoot = function(data) {
 
         var _this = this,
-            beams = [],
-            centerNode = null,
-            BEAM_NUMBER = 14;
+            centerNode = null;
 
         var init = function() {
 
-            centerNode = new Node(0, 0, 80);
+            centerNode = new Node(null, "root", 0, 0, 80);
 
             // @sample
-            var b = new Beam(centerNode, new Node(0, 0, 70), Math.random()*Math.PI*2, 400);
-            var d = 1;
+            //var b = new Beam(centerNode, new Node([], 0, 0, 70), Math.random()*Math.PI*2, 400);
+
+            /*var d = 1;
 
             setInterval(function(){
 
@@ -445,7 +529,7 @@ var app = new function() {
                 if (b.getRadius() < 160) d = -1;
                 if (b.getRadius() > 400) d = 1;
 
-            }, 25);
+            }, 25); */
 
         };
 
