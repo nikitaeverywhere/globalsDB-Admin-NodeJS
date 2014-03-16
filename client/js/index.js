@@ -308,6 +308,40 @@ var app = new function() {
 
         };
 
+        Node.prototype.childController = new function() {
+
+            var __this = this,
+                node = _this,
+                child = [],
+                MAX_ELEMENTS = Infinity, // todo: UPDATE AGAIN WHEN DATA_ADAPTER UPDATE
+                BASE_ELEMENT_NUMBER = 15;
+
+            /**
+             * Request data.
+             *
+             * @param number
+             * @param fromIndex
+             */
+            var requestBaseData = function(number, fromIndex) {
+
+                var level = DATA_ADAPTER.getLevel(node.getPath(), BASE_ELEMENT_NUMBER, child[fromIndex]);
+
+                for (var i = 0; i < level.length; i++) {
+                    child[fromIndex + i] = level[i];
+                }
+
+                if (level.length < number) MAX_ELEMENTS = child.length;
+
+            };
+
+            __this.init = function() {
+
+                requestBaseData(BASE_ELEMENT_NUMBER, 0);
+
+            };
+
+        };
+
         /**
          * Joins node to the parent node.
          */
@@ -363,6 +397,8 @@ var app = new function() {
             _this.setPosition(startX, startY);
             _this.setRadius(startR);
             updateView();
+
+            _this.childController.init();
 
         };
 
@@ -507,6 +543,8 @@ var app = new function() {
         var init = function() {
 
             centerNode = new Node(null, "root", 0, 0, 80);
+
+            centerNode = new Node(centerNode, "people", 200, 200, 80);
 
             // @sample
             //var b = new Beam(centerNode, new Node([], 0, 0, 70), Math.random()*Math.PI*2, 400);

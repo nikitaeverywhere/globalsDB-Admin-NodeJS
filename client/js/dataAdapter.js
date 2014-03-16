@@ -59,7 +59,7 @@ var dataAdapter = new function() {
      * [ @param number {Number} Number of elements to return. If not present, return everything available. ]
      * @returns {Array}
      */
-    this.getLevel = function(path, from, number) {
+    this.getLevel = function(path, number, from) {
 
         var i = -1, obj = dataTree, arr = []; if (!number) number = Infinity;
 
@@ -70,7 +70,7 @@ var dataAdapter = new function() {
         } while (path[i] && obj);
 
         for (var u in obj) { // return object properties list
-            if (!obj.hasOwnProperty(u)) continue;
+            if (!obj.hasOwnProperty(u) || u === VALUE_PREFIX) continue;
             if (from) { if (u !== from) continue; else from = false }
             if (number > 0) { number--; arr.push(u); }
         }
@@ -83,7 +83,7 @@ var dataAdapter = new function() {
      * Must return current node value as a string.
      *
      * @param path {Array} For example, [1, "obj", 15] represents call to OBJECT[1]["obj"][15] value.
-     * @returns {String}
+     * @returns {*}
      */
     this.getValue = function(path) {
 
