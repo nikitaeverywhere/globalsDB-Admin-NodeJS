@@ -15,6 +15,15 @@ var Geometry = {
 
 };
 
+var blockEvent = function(e) {
+    e.preventDefault();
+    e.cancelBubble = true;
+    if (e.preventDefault) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+};
+
 var app = new function() {
 
     var DOM_ELEMENTS = {
@@ -91,15 +100,6 @@ var app = new function() {
                 pressed: false
             };
 
-        var blockEvent = function(e) {
-            e.preventDefault();
-            e.cancelBubble = true;
-            if (e.preventDefault) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-        };
-
         this.getRelativeCenter = function() {
 
             return {
@@ -168,6 +168,8 @@ var app = new function() {
 
                 e.ox = e.x;
                 e.oy = e.y;
+                e.i = 0;
+                e.ld = undefined;
                 e.ovx = _this.getViewX() + VIEWPORT_WIDTH/2;
                 e.ovy = _this.getViewY() + VIEWPORT_HEIGHT/2;
 
@@ -178,7 +180,13 @@ var app = new function() {
                 if (!e.event.changedTouches || e.event.changedTouches.length < 2) {
                     blockEvent(e.event);
                 } else {
-                    _this.scaleView(0);
+                    var d = Math.sqrt(Math.pow(e.event.changedTouches[0].pageX - e.event.changedTouches[1].pageX, 2) +
+                        Math.pow(e.event.changedTouches[0].pageY - e.event.changedTouches[1].pageY, 2));
+                    if (e.ld) {
+                        e.i++;
+                        _this.scaleView((d - e.ld)/100);
+                    }
+                    e.ld = d;
                 }
                 _this.setViewCenter(e.ovx + (e.ox - e.x), e.ovy + (e.oy - e.y));
 
@@ -186,6 +194,7 @@ var app = new function() {
 
             this.ended = function(e) {
 
+                //alert(e.i);
                 //console.log("scroll end");
 
             };
@@ -198,7 +207,7 @@ var app = new function() {
                 KEY_PRESSED = 1,
                 KEY_RELEASED = 0;
 
-            this.keyPress = function(keyCode) {
+            this.keyPress = function(keyCode, event) {
 
                 keyStat[keyCode] = KEY_PRESSED;
 
@@ -211,6 +220,7 @@ var app = new function() {
                 switch (keyCode) {
                     case 8: { // BACKSPACE
                         if (TREE_ROOT) TREE_ROOT.backEvent();
+                        blockEvent(event);
                     } break;
                     case 13: { // ENTER
                         if (TREE_ROOT) TREE_ROOT.enterEvent();
@@ -304,13 +314,13 @@ var app = new function() {
                 pointerEvents.ended(touchObject);
             };
             DOM_ELEMENTS.VIEWPORT.onmousewheel = function(e) {
-                _this.scaleView((e.deltaY || e.wheelDelta)/2000);
+                _this.scaleView(-(e.deltaY || e.wheelDelta)/2000);
             };
             document.body.onkeydown = function(e) {
-                keyboardEvents.keyPress(e.keyCode);
+                keyboardEvents.keyPress(e.keyCode, e);
             };
             document.body.onkeyup = function(e) {
-                keyboardEvents.keyRelease(e.keyCode);
+                keyboardEvents.keyRelease(e.keyCode, e);
             };
 
         };
@@ -322,12 +332,13 @@ var app = new function() {
      *
      * @param parentNode {Node} Parent node
      * @param index {Array} Node index
+     * @param baseAngle
      * [ @param startX ]
      * [ @param startY ]
      * [ @param startR ]
      * @constructor
      */
-    var Node = function(parentNode, index, startX, startY, startR) {
+    var Node = function(parentNode, index, baseAngle, startX, startY, startR) {
 
         var _this = this,
             PARENT_NODE = (parentNode instanceof Node)?parentNode:null,
@@ -339,7 +350,7 @@ var app = new function() {
                 r: 0,
                 relativeX: manipulator.getRelativeCenter().x,
                 relativeY: manipulator.getRelativeCenter().y,
-                baseAngle: Math.PI // angle to parent element
+                baseAngle: baseAngle // angle to parent element
             },
             value = "",
             element = null;
@@ -396,6 +407,12 @@ var app = new function() {
 
         };
 
+        this.setBaseAngle = function(angle) {
+
+            visualNodeProps.baseAngle = angle;
+
+        };
+
         this.getX = function() { return visualNodeProps.x; };
         this.getY = function() { return visualNodeProps.y; };
         this.getR = function() { return visualNodeProps.r; };
@@ -429,7 +446,8 @@ var app = new function() {
                 INITIAL_ELEMENT_NUMBER = 30,
                 SELECTED_INDEX = 0,
                 VISUAL_SELECTED_INDEX = 0, // for animation
-                updateViewInterval = 0;
+                updateViewInterval = 0,
+                NODES_FREE_ALIGN = false; // shows if place nodes free (not to fix them with selector)
 
             /**
              * Enters to selected node.
@@ -440,6 +458,7 @@ var app = new function() {
 
                 var n = beams[SELECTED_INDEX].beam.getNode();
 
+                beams[SELECTED_INDEX].beam.setRadius(600);
                 n.initChild();
                 TREE_ROOT.setTriggeringNode(n);
 
@@ -449,11 +468,21 @@ var app = new function() {
 
                 var last = SELECTED_INDEX;
 
-                SELECTED_INDEX = Math.max(0, Math.min(child.length - 1, SELECTED_INDEX + indexDelta));
+                if (NODES_FREE_ALIGN) {
+                    SELECTED_INDEX = (SELECTED_INDEX + indexDelta + child.length) % child.length;
+                } else {
+                    SELECTED_INDEX = Math.max(0, Math.min(child.length - 1, SELECTED_INDEX + indexDelta));
+                    if (last !== SELECTED_INDEX) {
+                        try {
+                            beams[last].beam.setRadius(300);
+                            beams[last].beam.getNode().childController.removeBeams();
+                        } catch (e) {
+
+                        }
+                    }
+                }
 
                 if (last !== SELECTED_INDEX) alignSubNodes();
-
-                alignSubNodes();
 
             };
 
@@ -462,6 +491,7 @@ var app = new function() {
                 for (var i in beams) {
                     if (!beams.hasOwnProperty(i)) continue;
                     beams[i].beam.remove();
+                    delete beams[i];
                 }
 
             };
@@ -480,7 +510,10 @@ var app = new function() {
                     child[fromIndex + i] = level[i];
                 }
 
-                if (level.length < number) MAX_DATA_ELEMENTS = child.length;
+                if (level.length < number) {
+                    MAX_DATA_ELEMENTS = child.length;
+                    if (MAX_DATA_ELEMENTS < 12) NODES_FREE_ALIGN = true;
+                }
 
             };
 
@@ -490,37 +523,49 @@ var app = new function() {
                       // index: { index: Number, beam: Beam }
                 //}
 
-                var fromIndex = Math.max(Math.ceil(SELECTED_INDEX - MAX_VISUAL_ELEMENTS/2), 0),
-                    toIndex = Math.min(Math.floor(SELECTED_INDEX + MAX_VISUAL_ELEMENTS/2), child.length),
-                    deprecatedBeams = [ /* { index, beam } */ ],
-                    i, tempBeam, tempNode;
+                if (NODES_FREE_ALIGN) {
 
-                for (i in beams) {
-                    if (!beams.hasOwnProperty(i)) continue;
-                    if (i < fromIndex || i >= toIndex) {
-                        deprecatedBeams.push(beams[i]);
-                        delete beams[i];
-                    }
-                }
-
-                for (i = fromIndex; i < toIndex; i++) {
-
-                    if (beams.hasOwnProperty(i.toString())) { // update
-                        //beams[i].index = visualNodeProps.baseAngle + Math.PI + (SELECTED_INDEX - i);
-                    } else if (deprecatedBeams.length) { // reset
-                        tempBeam = deprecatedBeams.pop();
-                        tempBeam.beam.setSubPathName(child[i]);
-                        tempBeam.index = i;
-                        //tempNode = tempBeam.getNode();
-                        //tempNode.setValue(dataAdapter.getValue(tempNode.getPath())); // @wrong! SetPath!!!
-                    } else { // create
-                        beams[i] = { index: i, beam: new Beam(node, child[i], 0, 300)};
+                    if (!beams.hasOwnProperty("0")) {
+                        for (var u = 0; u < child.length; u++) {
+                            beams[u] = { index: u, beam: new Beam(node, child[u], 0, 300)};
+                        }
                     }
 
-                }
+                } else {
 
-                for (i = 0; i < deprecatedBeams.length; i++) { // delete
-                    deprecatedBeams[i].beam.remove();
+                    var fromIndex = Math.max(Math.ceil(SELECTED_INDEX - MAX_VISUAL_ELEMENTS/2), 0),
+                        toIndex = Math.min(Math.floor(SELECTED_INDEX + MAX_VISUAL_ELEMENTS/2), child.length),
+                        deprecatedBeams = [ /* { index, beam } */ ],
+                        i, tempBeam;
+
+                    for (i in beams) {
+                        if (!beams.hasOwnProperty(i)) continue;
+                        if (i < fromIndex || i >= toIndex) {
+                            deprecatedBeams.push(beams[i]);
+                            delete beams[i];
+                        }
+                    }
+
+                    for (i = fromIndex; i < toIndex; i++) {
+
+                        if (beams.hasOwnProperty(i.toString())) { // update
+                            //beams[i].index = visualNodeProps.baseAngle + Math.PI + (SELECTED_INDEX - i);
+                        } else if (deprecatedBeams.length) { // reset
+                            tempBeam = deprecatedBeams.pop();
+                            tempBeam.beam.setSubPathName(child[i]);
+                            tempBeam.index = i;
+                            //tempNode = tempBeam.getNode();
+                            //tempNode.setValue(dataAdapter.getValue(tempNode.getPath())); // @wrong! SetPath!!!
+                        } else { // create
+                            beams[i] = { index: i, beam: new Beam(node, child[i], 0, 300)};
+                        }
+
+                    }
+
+                    for (i = 0; i < deprecatedBeams.length; i++) { // delete
+                        deprecatedBeams[i].beam.remove();
+                    }
+
                 }
 
                 updateView();
@@ -529,13 +574,40 @@ var app = new function() {
 
             var updateView = function() {
 
+
+                if (NODES_FREE_ALIGN) {
+                    viewFreeUpdater();
+                    updateViewInterval = 0;
+                    return;
+                }
+
                 if (!updateViewInterval) {
-                    updateViewInterval = setInterval(viewUpdater, 25);
+                    updateViewInterval = setInterval(viewScrollUpdater, 25);
                 }
 
             };
 
-            var viewUpdater = function() { // work with indexes: display child array
+            var viewFreeUpdater = function() {
+
+                var i = 0,
+                    mi = (child.length < 2)?2:child.length,
+                    angle;
+
+                for (var b in beams) {
+                    if (!beams.hasOwnProperty(b)) continue;
+                    beams[b].beam.highlight(SELECTED_INDEX === beams[b].index); // @improve
+                    if (visualNodeProps.baseAngle !== undefined) {
+                        angle = Geometry.normalizeAngle(visualNodeProps.baseAngle + Math.PI/2 + Math.PI*i/(mi - 1));
+                    } else {
+                        angle = 2*Math.PI*i/mi;
+                    }
+                    beams[b].beam.setAngle(angle);
+                    i++;
+                }
+
+            };
+
+            var viewScrollUpdater = function() { // work with indexes: display child array
 
                 var delta, d;
 
@@ -552,7 +624,7 @@ var app = new function() {
                     d = beams[b].index - VISUAL_SELECTED_INDEX;
                     beams[b].beam.highlight(SELECTED_INDEX === beams[b].index); // @improve
                     beams[b].beam.getNode().setZIndex(-Math.round(d*d) + 200);
-                    beams[b].beam.setAngle(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2 - visualNodeProps.baseAngle + Math.PI);
+                    beams[b].beam.setAngle(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2 + (visualNodeProps.baseAngle || Math.PI) + Math.PI);
                 }
 
             };
@@ -689,7 +761,14 @@ var app = new function() {
                 WIDTH_EXPAND: 2,
                 HALF_HEIGHT: 3 // @override
             },
-            node = new Node(parentNode, subPathName, 0, 0, parentNode.getR()),
+            node = new Node(
+                parentNode,
+                subPathName,
+                Geometry.normalizeAngle(visualBeamProps.angle + Math.PI),
+                0,
+                0,
+                parentNode.getR()
+            ),
             element = null;
 
         var createBeamElement = function() {
@@ -708,6 +787,7 @@ var app = new function() {
         this.setAngle = function(direction) {
 
             visualBeamProps.angle = Geometry.normalizeAngle(direction);
+            node.setBaseAngle(Geometry.normalizeAngle(visualBeamProps.angle + Math.PI));
             updateView();
 
         };
@@ -841,7 +921,7 @@ var app = new function() {
 
         var init = function() {
 
-            rootNode = new Node(null, "root", 0, 0, 80);
+            rootNode = new Node(null, "root", undefined, 0, 0, 80);
             triggeringNode = rootNode;
             rootNode.initChild();
 
