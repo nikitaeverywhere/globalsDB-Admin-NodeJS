@@ -73,6 +73,8 @@ var app = new function() {
             VIEWPORT_SCALE = 1,
             WORLD_WIDTH = 100000,
             WORLD_HEIGHT = 100000,
+            MIN_SCALE = 0.3,
+            MAX_SCALE = 3,
             touchObject = {
                 ox: 0,
                 oy: 0,
@@ -110,6 +112,8 @@ var app = new function() {
 
             VIEWPORT_SCALE += delta;
 
+            VIEWPORT_SCALE = Math.max(MIN_SCALE, Math.min(MAX_SCALE, VIEWPORT_SCALE));
+
             element.style["transform"] = element.style["-ms-transform"] = element.style["-o-transform"] =
                 element.style["-moz-transform"] = element.style["-webkit-transform"] =
                     "scale(" + VIEWPORT_SCALE + ")";
@@ -126,7 +130,6 @@ var app = new function() {
 
             DOM_ELEMENTS.VIEWPORT.scrollLeft = VIEW_X = x - VIEWPORT_WIDTH/2;
             DOM_ELEMENTS.VIEWPORT.scrollTop = VIEW_Y = y - VIEWPORT_HEIGHT/2;
-            //console.log("Scrolled to ", VIEW_X, VIEW_Y);
 
         };
 
@@ -156,6 +159,22 @@ var app = new function() {
 
                 //console.log("scroll end");
 
+            };
+
+        };
+
+        var keyboardEvents = new function() {
+
+            var keyStat = {},
+                KEY_PRESSED = 1,
+                KEY_RELEASED = 0;
+
+            this.keyPress = function(keyCode) {
+                keyStat[keyCode] = KEY_PRESSED;
+            };
+
+            this.keyRelease = function(keyCode) {
+                keyStat[keyCode] = KEY_RELEASED;
             };
 
         };
@@ -229,6 +248,15 @@ var app = new function() {
                 setupTouchEvent(e);
                 pointerEvents.ended(touchObject);
             };
+            DOM_ELEMENTS.VIEWPORT.onmousewheel = function(e) {
+                _this.scaleView((e.deltaY || e.wheelDelta)/2000);
+            };
+            DOM_ELEMENTS.VIEWPORT.onkeydown = function(e) {
+                keyboardEvents.keyPress(e.keyCode);
+            };
+            DOM_ELEMENTS.VIEWPORT.onkeyup = function(e) {
+                keyboardEvents.keyRelease(e.keyCode);
+            };
 
         };
 
@@ -255,7 +283,8 @@ var app = new function() {
                 y: 0,
                 r: 0,
                 relativeX: manipulator.getRelativeCenter().x,
-                relativeY: manipulator.getRelativeCenter().y
+                relativeY: manipulator.getRelativeCenter().y,
+                baseAngle: Math.PI // angle to parent element
             },
             value = "",
             element = null;
@@ -288,6 +317,13 @@ var app = new function() {
 
         };
 
+        this.setValue = function(text) {
+
+            value = text;
+            element.childNodes[0].childNodes[0].innerHTML = value;
+
+        };
+
         this.getX = function() { return visualNodeProps.x; };
         this.getY = function() { return visualNodeProps.y; };
         this.getR = function() { return visualNodeProps.r; };
@@ -312,9 +348,14 @@ var app = new function() {
 
             var __this = this,
                 node = _this,
-                child = [],
-                MAX_ELEMENTS = Infinity, // todo: UPDATE AGAIN WHEN DATA_ADAPTER UPDATE
-                BASE_ELEMENT_NUMBER = 15;
+                child = [], // full child node data [string]
+                beams = {
+                    // index: Beam
+                },
+                MAX_DATA_ELEMENTS = Infinity, // todo: UPDATE AGAIN WHEN DATA_ADAPTER UPDATE
+                MAX_VISUAL_ELEMENTS = 15,
+                INITIAL_ELEMENT_NUMBER = 30,
+                SELECTED_INDEX = 0;
 
             /**
              * Request data.
@@ -324,19 +365,54 @@ var app = new function() {
              */
             var requestBaseData = function(number, fromIndex) {
 
-                var level = DATA_ADAPTER.getLevel(node.getPath(), BASE_ELEMENT_NUMBER, child[fromIndex]);
+                var level = DATA_ADAPTER.getLevel(node.getPath(), INITIAL_ELEMENT_NUMBER, child[fromIndex]);
 
                 for (var i = 0; i < level.length; i++) {
                     child[fromIndex + i] = level[i];
                 }
 
-                if (level.length < number) MAX_ELEMENTS = child.length;
+                if (level.length < number) MAX_DATA_ELEMENTS = child.length;
+
+            };
+
+            var updateView = function() { // work with indexes: display child array
+
+                var fromIndex = Math.max(Math.ceil(SELECTED_INDEX - MAX_VISUAL_ELEMENTS/2), 0),
+                    toIndex = Math.min(Math.floor(SELECTED_INDEX + MAX_VISUAL_ELEMENTS/2), child.length),
+                    deprecatedBeams = [ /* { index, beam } */ ],
+                    i, tempBeam, tempNode;
+
+                for (i in beams) {
+                    if (!beams.hasOwnProperty(i)) continue;
+                    if (i < fromIndex || i > toIndex) deprecatedBeams.push({ index: i, beam: beams[i] });
+                }
+
+                for (i = fromIndex; i < toIndex; i++) {
+
+                    if (beams.hasOwnProperty(i.toString())) { // update
+                        beams[i].setAngle((visualNodeProps.baseAngle + Math.PI + (SELECTED_INDEX - i)));
+                    } else if (deprecatedBeams.length) { // reset
+                        tempBeam = deprecatedBeams.pop();
+                        tempNode = tempBeam.getNode();
+                        tempNode.setValue(dataAdapter.getValue(tempNode.getPath())); // @wrong! SetPath!!!
+                    } else { // create
+                        beams[i] = new Beam(node, child[i],
+                            (visualNodeProps.baseAngle + Math.PI + (SELECTED_INDEX - i)/3),
+                            300);
+                    }
+
+                }
+
+                for (i = 0; i < deprecatedBeams.length; i++) { // delete
+                    // todo: delete
+                }
 
             };
 
             __this.init = function() {
 
-                requestBaseData(BASE_ELEMENT_NUMBER, 0);
+                requestBaseData(INITIAL_ELEMENT_NUMBER, 0);
+                if (_this.getPath().length < 30) updateView();
 
             };
 
@@ -387,6 +463,12 @@ var app = new function() {
 
         };
 
+        this.initChilds = function() {
+
+            _this.childController.init();
+
+        };
+
         var init = function() {
 
             joinParent(PARENT_NODE);
@@ -398,8 +480,6 @@ var app = new function() {
             _this.setRadius(startR);
             updateView();
 
-            _this.childController.init();
-
         };
 
         init();
@@ -410,13 +490,13 @@ var app = new function() {
      * Connects parentNode and node with position controlling under node.
      *
      * @param parentNode
-     * @param node
+     * @param subPath
      * [ @param initialAngle ]
      * [ @param initialRadius ]
      *
      * @constructor
      */
-    var Beam = function(parentNode, node, initialAngle, initialRadius) {
+    var Beam = function(parentNode, subPath, initialAngle, initialRadius) {
 
         var visualBeamProps = {
                 angle: Geometry.normalizeAngle(initialAngle || 0),
@@ -426,13 +506,14 @@ var app = new function() {
                 WIDTH_EXPAND: 2,
                 HALF_HEIGHT: 3 // @override
             },
+            node = new Node(parentNode, subPath, 0, 0, parentNode.getR()),
             element = null;
 
         var createBeamElement = function() {
 
             var el = document.createElement("DIV");
             el.className = "link";
-            el.innerHTML = "<div><div><div><span>Loading this data...</span></div></div></div>"; // @structured
+            el.innerHTML = "<div><div><div><span>" + subPath + "</span></div></div></div>"; // @structured
             DOM_ELEMENTS.FIELD.appendChild(el);
 
             visualBeamProps.HALF_HEIGHT = parseFloat(el.clientHeight)/2 || 3;
@@ -442,6 +523,7 @@ var app = new function() {
         };
 
         this.getNode = function() { return node; };
+        this.getSubPath = function() { return subPath; };
         this.getParentNode = function() { return parentNode; };
         this.getAngle = function() { return visualBeamProps.angle; };
         this.getRadius = function() { return visualBeamProps.r; };
@@ -523,6 +605,7 @@ var app = new function() {
 
             element = createBeamElement();
             updateView();
+            node.initChilds();
 
         };
 
@@ -538,36 +621,12 @@ var app = new function() {
     var treeRoot = function(data) {
 
         var _this = this,
-            centerNode = null;
+            rootNode = null;
 
         var init = function() {
 
-            centerNode = new Node(null, "root", 0, 0, 80);
-
-            centerNode = new Node(centerNode, "people", 200, 200, 80);
-
-            // @sample
-            //var b = new Beam(centerNode, new Node([], 0, 0, 70), Math.random()*Math.PI*2, 400);
-
-            /*var d = 1;
-
-            setInterval(function(){
-
-                b.setRadius(b.getRadius() - d*2);
-                if (b.getRadius() < 160) d = -1;
-                if (b.getRadius() > 400) d = 1;
-
-            }, 25);
-
-            var b2 = new Beam(centerNode, new Node(0, 0, 70), Math.random()*Math.PI*2, 400);
-
-            setInterval(function(){
-
-                b2.setRadius(b2.getRadius() - d*2);
-                if (b.getRadius() < 160) d = -1;
-                if (b.getRadius() > 400) d = 1;
-
-            }, 25); */
+            rootNode = new Node(null, "root", 0, 0, 80);
+            rootNode.initChilds();
 
         };
 

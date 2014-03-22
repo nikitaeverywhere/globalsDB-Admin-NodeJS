@@ -46,7 +46,7 @@ var dataAdapter = new function() {
      * This function is bind to application. Each call forces app to request data again for required nodes.
      * Also use this function for asynchronous data tree update: call it after update with appropriate path argument.
      *
-     * @param path {Array} Where update happened.
+     * @param path {Array} Where update happened. Array of type ["root", "loot", ...].
      * @overrides
      */
     this.updated = function(path) {};
