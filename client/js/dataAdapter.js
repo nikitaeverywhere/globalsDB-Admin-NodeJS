@@ -37,6 +37,40 @@ var dataAdapter = new function() {
             loot: {
                 box: "100",
                 knife: "100"
+            },
+            John: {
+                name: "John",
+                age: "18",
+                gender: 1
+            },
+            Lizzie: {
+                name: "Lizzie",
+                age: "19",
+                gender: 2
+            },
+            Karin: {
+                name: "Karin",
+                age: "16",
+                gender: 2
+            },
+            Roger: {
+                name: "Roger",
+                age: "18",
+                gender: 1
+            },
+            Karl: {
+                name: "Karl",
+                age: "18",
+                gender: 1
+            },
+            a1: {
+                test: "1"
+            },
+            a2: {
+                test: "1"
+            },
+            a3: {
+                test: "1"
             }
         }
 

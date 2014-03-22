@@ -6,7 +6,7 @@
 var Geometry = {
 
     normalizeAngle: function(angle) {
-        return angle % (2*Math.PI);
+        return (angle + Math.PI*2) % (2*Math.PI);
     },
 
     angleDifference: function(sourceAngle, destinationAngle) {
@@ -23,7 +23,10 @@ var app = new function() {
         },
         USE_HARDWARE_ACCELERATION = false,
         DATA_ADAPTER = dataAdapter,
-        manipulator;
+        TREE_ROOT = null,
+        manipulator,
+        NODE_BASE_CLASS = "node",
+        LINK_BASE_CLASS = "link"; // CSS class names
 
     var setElements = function() {
 
@@ -70,11 +73,14 @@ var app = new function() {
             VIEWPORT_HEIGHT = window.innerHeight,
             VIEW_X = 0,
             VIEW_Y = 0,
+            VISUAL_VIEW_X = 0,
+            VISUAL_VIEW_Y = 0,
             VIEWPORT_SCALE = 1,
             WORLD_WIDTH = 100000,
             WORLD_HEIGHT = 100000,
             MIN_SCALE = 0.3,
             MAX_SCALE = 3,
+            viewportUpdateInterval = 0,
             touchObject = {
                 ox: 0,
                 oy: 0,
@@ -103,6 +109,9 @@ var app = new function() {
 
         };
 
+        this.getViewX = function() { return VIEW_X - WORLD_WIDTH/2; };
+        this.getViewY = function() { return VIEW_Y - WORLD_HEIGHT/2; };
+
         /**
          * Performs relative scale for viewport.
          */
@@ -126,10 +135,30 @@ var app = new function() {
          * @param x
          * @param y
          */
-        var setViewCenter = function(x, y) {
+        this.setViewCenter = function(x, y) {
 
-            DOM_ELEMENTS.VIEWPORT.scrollLeft = VIEW_X = x - VIEWPORT_WIDTH/2;
-            DOM_ELEMENTS.VIEWPORT.scrollTop = VIEW_Y = y - VIEWPORT_HEIGHT/2;
+            VIEW_X = WORLD_WIDTH/2 + x - VIEWPORT_WIDTH/2;
+            VIEW_Y = WORLD_HEIGHT/2 + y - VIEWPORT_HEIGHT/2;
+            if (!viewportUpdateInterval) viewportUpdateInterval = setInterval(viewportUpdater, 25);
+
+        };
+
+        var viewportUpdater = function() {
+
+            var deltaX, deltaY;
+
+            VISUAL_VIEW_X += deltaX = (VIEW_X - VISUAL_VIEW_X)/2;
+            VISUAL_VIEW_Y += deltaY = (VIEW_Y - VISUAL_VIEW_Y)/2;
+
+            if (Math.abs(deltaX) + Math.abs(deltaY) < 0.001) {
+                clearInterval(viewportUpdateInterval);
+                viewportUpdateInterval = 0;
+                VISUAL_VIEW_X = VIEW_X;
+                VISUAL_VIEW_Y = VIEW_Y;
+            }
+
+            DOM_ELEMENTS.VIEWPORT.scrollLeft = Math.round(VISUAL_VIEW_X);
+            DOM_ELEMENTS.VIEWPORT.scrollTop = Math.round(VISUAL_VIEW_Y);
 
         };
 
@@ -139,8 +168,8 @@ var app = new function() {
 
                 e.ox = e.x;
                 e.oy = e.y;
-                e.ovx = VIEW_X + VIEWPORT_WIDTH/2;
-                e.ovy = VIEW_Y + VIEWPORT_HEIGHT/2;
+                e.ovx = _this.getViewX() + VIEWPORT_WIDTH/2;
+                e.ovy = _this.getViewY() + VIEWPORT_HEIGHT/2;
 
             };
 
@@ -151,7 +180,7 @@ var app = new function() {
                 } else {
                     _this.scaleView(0);
                 }
-                setViewCenter(e.ovx + (e.ox - e.x), e.ovy + (e.oy - e.y));
+                _this.setViewCenter(e.ovx + (e.ox - e.x), e.ovy + (e.oy - e.y));
 
             };
 
@@ -170,7 +199,31 @@ var app = new function() {
                 KEY_RELEASED = 0;
 
             this.keyPress = function(keyCode) {
+
                 keyStat[keyCode] = KEY_PRESSED;
+
+                var scrolling = function(delta) {
+
+                    if (TREE_ROOT) TREE_ROOT.scrollEvent(delta);
+
+                };
+
+                switch (keyCode) {
+                    case 8: { // BACKSPACE
+                        if (TREE_ROOT) TREE_ROOT.backEvent();
+                    } break;
+                    case 13: { // ENTER
+                        if (TREE_ROOT) TREE_ROOT.enterEvent();
+                    } break;
+                    case 38: { // UP
+                        scrolling(-1);
+                    } break;
+                    case 40: { // DOWN
+                        scrolling(1);
+                    } break;
+                }
+
+
             };
 
             this.keyRelease = function(keyCode) {
@@ -196,7 +249,9 @@ var app = new function() {
 
             DOM_ELEMENTS.FIELD.style.width = WORLD_WIDTH + "px";
             DOM_ELEMENTS.FIELD.style.height = WORLD_HEIGHT + "px";
-            setViewCenter(WORLD_WIDTH/2, WORLD_HEIGHT/2);
+            _this.setViewCenter(0, 0);
+            VISUAL_VIEW_X = VIEW_X;
+            VISUAL_VIEW_Y = VIEW_Y;
 
         };
 
@@ -251,10 +306,10 @@ var app = new function() {
             DOM_ELEMENTS.VIEWPORT.onmousewheel = function(e) {
                 _this.scaleView((e.deltaY || e.wheelDelta)/2000);
             };
-            DOM_ELEMENTS.VIEWPORT.onkeydown = function(e) {
+            document.body.onkeydown = function(e) {
                 keyboardEvents.keyPress(e.keyCode);
             };
-            DOM_ELEMENTS.VIEWPORT.onkeyup = function(e) {
+            document.body.onkeyup = function(e) {
                 keyboardEvents.keyRelease(e.keyCode);
             };
 
@@ -320,7 +375,24 @@ var app = new function() {
         this.setValue = function(text) {
 
             value = text;
-            element.childNodes[0].childNodes[0].innerHTML = value;
+            try {
+                element.childNodes[0].childNodes[0].innerHTML = value;
+            } catch (e) {
+                console.error("Unable to set value to node DOM element", e);
+            }
+
+        };
+
+        this.setIndex = function(index) { // @improve (value method)
+
+            INDEX = index;
+            _this.setValue(DATA_ADAPTER.getValue(_this.getPath()));
+
+        };
+
+        this.setZIndex = function(z) {
+
+            if (element) element.style.zIndex = 11 + z;
 
         };
 
@@ -344,18 +416,55 @@ var app = new function() {
 
         };
 
-        Node.prototype.childController = new function() {
+        this.childController = new function() {
 
             var __this = this,
                 node = _this,
                 child = [], // full child node data [string]
                 beams = {
-                    // index: Beam
+                    // index: { index: Number, beam: Beam }
                 },
                 MAX_DATA_ELEMENTS = Infinity, // todo: UPDATE AGAIN WHEN DATA_ADAPTER UPDATE
                 MAX_VISUAL_ELEMENTS = 15,
                 INITIAL_ELEMENT_NUMBER = 30,
-                SELECTED_INDEX = 0;
+                SELECTED_INDEX = 0,
+                VISUAL_SELECTED_INDEX = 0, // for animation
+                updateViewInterval = 0;
+
+            /**
+             * Enters to selected node.
+             */
+            this.enter = function() { // @update SELECTED_INDEX => argument
+
+                if (!beams[SELECTED_INDEX]) return;
+
+                var n = beams[SELECTED_INDEX].beam.getNode();
+
+                n.initChild();
+                TREE_ROOT.setTriggeringNode(n);
+
+            };
+
+            this.updateSelectedIndex = function(indexDelta) {
+
+                var last = SELECTED_INDEX;
+
+                SELECTED_INDEX = Math.max(0, Math.min(child.length - 1, SELECTED_INDEX + indexDelta));
+
+                if (last !== SELECTED_INDEX) alignSubNodes();
+
+                alignSubNodes();
+
+            };
+
+            this.removeBeams = function() {
+
+                for (var i in beams) {
+                    if (!beams.hasOwnProperty(i)) continue;
+                    beams[i].beam.remove();
+                }
+
+            };
 
             /**
              * Request data.
@@ -375,7 +484,11 @@ var app = new function() {
 
             };
 
-            var updateView = function() { // work with indexes: display child array
+            var alignSubNodes = function() {
+
+                //beams = {
+                      // index: { index: Number, beam: Beam }
+                //}
 
                 var fromIndex = Math.max(Math.ceil(SELECTED_INDEX - MAX_VISUAL_ELEMENTS/2), 0),
                     toIndex = Math.min(Math.floor(SELECTED_INDEX + MAX_VISUAL_ELEMENTS/2), child.length),
@@ -384,27 +497,62 @@ var app = new function() {
 
                 for (i in beams) {
                     if (!beams.hasOwnProperty(i)) continue;
-                    if (i < fromIndex || i > toIndex) deprecatedBeams.push({ index: i, beam: beams[i] });
+                    if (i < fromIndex || i >= toIndex) {
+                        deprecatedBeams.push(beams[i]);
+                        delete beams[i];
+                    }
                 }
 
                 for (i = fromIndex; i < toIndex; i++) {
 
                     if (beams.hasOwnProperty(i.toString())) { // update
-                        beams[i].setAngle((visualNodeProps.baseAngle + Math.PI + (SELECTED_INDEX - i)));
+                        //beams[i].index = visualNodeProps.baseAngle + Math.PI + (SELECTED_INDEX - i);
                     } else if (deprecatedBeams.length) { // reset
                         tempBeam = deprecatedBeams.pop();
-                        tempNode = tempBeam.getNode();
-                        tempNode.setValue(dataAdapter.getValue(tempNode.getPath())); // @wrong! SetPath!!!
+                        tempBeam.beam.setSubPathName(child[i]);
+                        tempBeam.index = i;
+                        //tempNode = tempBeam.getNode();
+                        //tempNode.setValue(dataAdapter.getValue(tempNode.getPath())); // @wrong! SetPath!!!
                     } else { // create
-                        beams[i] = new Beam(node, child[i],
-                            (visualNodeProps.baseAngle + Math.PI + (SELECTED_INDEX - i)/3),
-                            300);
+                        beams[i] = { index: i, beam: new Beam(node, child[i], 0, 300)};
                     }
 
                 }
 
                 for (i = 0; i < deprecatedBeams.length; i++) { // delete
-                    // todo: delete
+                    deprecatedBeams[i].beam.remove();
+                }
+
+                updateView();
+
+            };
+
+            var updateView = function() {
+
+                if (!updateViewInterval) {
+                    updateViewInterval = setInterval(viewUpdater, 25);
+                }
+
+            };
+
+            var viewUpdater = function() { // work with indexes: display child array
+
+                var delta, d;
+
+                VISUAL_SELECTED_INDEX += delta = (SELECTED_INDEX - VISUAL_SELECTED_INDEX)/2.5;
+
+                if (Math.abs(delta) < 0.001) {
+                    VISUAL_SELECTED_INDEX = SELECTED_INDEX;
+                    clearInterval(updateViewInterval);
+                    updateViewInterval = 0;
+                }
+
+                for (var b in beams) {
+                    if (!beams.hasOwnProperty(b)) continue;
+                    d = beams[b].index - VISUAL_SELECTED_INDEX;
+                    beams[b].beam.highlight(SELECTED_INDEX === beams[b].index); // @improve
+                    beams[b].beam.getNode().setZIndex(-Math.round(d*d) + 200);
+                    beams[b].beam.setAngle(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2 - visualNodeProps.baseAngle + Math.PI);
                 }
 
             };
@@ -412,7 +560,7 @@ var app = new function() {
             __this.init = function() {
 
                 requestBaseData(INITIAL_ELEMENT_NUMBER, 0);
-                if (_this.getPath().length < 30) updateView();
+                alignSubNodes();
 
             };
 
@@ -432,7 +580,7 @@ var app = new function() {
         var createNodeElement = function() {
 
             var el = document.createElement("DIV");
-            el.className = "node";
+            el.className = NODE_BASE_CLASS;
             el.innerHTML = "<div><span>" + value + "</span></div>";
             DOM_ELEMENTS.FIELD.appendChild(el);
             return el;
@@ -463,9 +611,44 @@ var app = new function() {
 
         };
 
-        this.initChilds = function() {
+        this.initChild = function() {
 
             _this.childController.init();
+
+        };
+
+        /**
+         * Gives control to parent node.
+         */
+        this.back = function() {
+
+            var parent = _this.getParent();
+
+            if (!parent) return;
+
+            TREE_ROOT.setTriggeringNode(parent);
+
+        };
+
+        this.remove = function() {
+
+            if (element) element.parentNode.removeChild(element);
+            _this.childController.removeBeams();
+
+        };
+
+        /**
+         * Make node glow (highlight node).
+         *
+         * @param glow {Boolean}
+         */
+        this.highlight = function(glow) {
+
+            if (element && glow) {
+                element.className += " selected";
+            } else {
+                element.className = NODE_BASE_CLASS;
+            }
 
         };
 
@@ -490,13 +673,13 @@ var app = new function() {
      * Connects parentNode and node with position controlling under node.
      *
      * @param parentNode
-     * @param subPath
+     * @param subPathName
      * [ @param initialAngle ]
      * [ @param initialRadius ]
      *
      * @constructor
      */
-    var Beam = function(parentNode, subPath, initialAngle, initialRadius) {
+    var Beam = function(parentNode, subPathName, initialAngle, initialRadius) {
 
         var visualBeamProps = {
                 angle: Geometry.normalizeAngle(initialAngle || 0),
@@ -506,14 +689,14 @@ var app = new function() {
                 WIDTH_EXPAND: 2,
                 HALF_HEIGHT: 3 // @override
             },
-            node = new Node(parentNode, subPath, 0, 0, parentNode.getR()),
+            node = new Node(parentNode, subPathName, 0, 0, parentNode.getR()),
             element = null;
 
         var createBeamElement = function() {
 
             var el = document.createElement("DIV");
-            el.className = "link";
-            el.innerHTML = "<div><div><div><span>" + subPath + "</span></div></div></div>"; // @structured
+            el.className = LINK_BASE_CLASS;
+            el.innerHTML = "<div><div><div><span>" + subPathName + "</span></div></div></div>"; // @structured
             DOM_ELEMENTS.FIELD.appendChild(el);
 
             visualBeamProps.HALF_HEIGHT = parseFloat(el.clientHeight)/2 || 3;
@@ -522,8 +705,57 @@ var app = new function() {
 
         };
 
+        this.setAngle = function(direction) {
+
+            visualBeamProps.angle = Geometry.normalizeAngle(direction);
+            updateView();
+
+        };
+
+        this.setRadius = function(radius) {
+
+            visualBeamProps.r = radius;
+            updateView();
+
+        };
+
+        this.remove = function() {
+
+            if (element) element.parentNode.removeChild(element);
+            if (node) node.remove();
+
+        };
+
+        this.setSubPathName = function(index) {
+
+            subPathName = index;
+            try {
+                element.childNodes[0].childNodes[0].childNodes[0].childNodes[0].innerHTML = index;
+            } catch (e) {
+                console.error("Unable to set value to beam DOM element", e);
+            }
+            node.setIndex(index);
+
+        };
+
+        /**
+         * Make link glow (highlight link).
+         *
+         * @param glow {Boolean}
+         */
+        this.highlight = function(glow) {
+
+            if (element && glow) {
+                element.className += " selected";
+            } else {
+                element.className = LINK_BASE_CLASS;
+            }
+            if (node) node.highlight(glow);
+
+        };
+
         this.getNode = function() { return node; };
-        this.getSubPath = function() { return subPath; };
+        this.getSubPath = function() { return subPathName; };
         this.getParentNode = function() { return parentNode; };
         this.getAngle = function() { return visualBeamProps.angle; };
         this.getRadius = function() { return visualBeamProps.r; };
@@ -567,7 +799,7 @@ var app = new function() {
                         visualBeamProps.angle + "rad)";
                 boxElement.style["transform"] = boxElement.style["-ms-transform"] = boxElement.style["-o-transform"] =
                     boxElement.style["-moz-transform"] = boxElement.style["-webkit-transform"] = "rotate(" +
-                        ((visualBeamProps.angle > Math.PI/2 && visualBeamProps.angle < Math.PI + Math.PI/2)?180:0) + "deg)";
+                        ((visualBeamProps.angle < Math.PI/2 || visualBeamProps.angle > Math.PI + Math.PI/2)?0:180) + "deg)";
 
             } else {
 
@@ -587,25 +819,10 @@ var app = new function() {
 
         };
 
-        this.setAngle = function(direction) {
-
-            visualBeamProps.angle = Geometry.normalizeAngle(direction);
-            updateView();
-
-        };
-
-        this.setRadius = function(radius) {
-
-            visualBeamProps.r = radius;
-            updateView();
-
-        };
-
         var init = function() {
 
             element = createBeamElement();
             updateView();
-            node.initChilds();
 
         };
 
@@ -615,18 +832,50 @@ var app = new function() {
 
     /**
      * Tree root has basic tree control capabilities.
-     *
-     * @param data
      */
-    var treeRoot = function(data) {
+    var treeRoot = function() {
 
         var _this = this,
-            rootNode = null;
+            rootNode = null,
+            triggeringNode = null;
 
         var init = function() {
 
             rootNode = new Node(null, "root", 0, 0, 80);
-            rootNode.initChilds();
+            triggeringNode = rootNode;
+            rootNode.initChild();
+
+        };
+
+        /**
+         * Scroll nodes for delta. Delta = 1 will scroll to 1 next node.
+         *
+         * @param delta
+         */
+        this.scrollEvent = function(delta) {
+
+            if (triggeringNode) triggeringNode.childController.updateSelectedIndex(delta);
+
+        };
+
+        this.enterEvent = function() {
+
+            if (triggeringNode) triggeringNode.childController.enter();
+
+        };
+
+        this.backEvent = function() {
+
+            if (triggeringNode) triggeringNode.back();
+
+        };
+
+        this.setTriggeringNode = function(node) {
+
+            if (!(node instanceof Node)) return;
+            triggeringNode = node;
+
+            manipulator.setViewCenter(node.getX(), node.getY());
 
         };
 
@@ -655,7 +904,7 @@ var app = new function() {
         manipulator = new Manipulator();
         manipulator.initialize();
 
-        new treeRoot(dataAdapter);
+        TREE_ROOT = new treeRoot();
 
     }
 

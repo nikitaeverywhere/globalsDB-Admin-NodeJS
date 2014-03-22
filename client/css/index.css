@@ -61,6 +61,14 @@ html, body {
     padding: 3px;
 }
 
+.link.selected, .link.selected > div > div {
+    box-shadow: 0 0 6px 4px rgb(114, 255, 179);
+}
+
+.node.selected {
+    box-shadow: 0 0 6px 4px rgb(114, 255, 179);
+}
+
 .link {
     position: absolute;
     height: 6px;
