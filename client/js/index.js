@@ -24,6 +24,7 @@ var blockEvent = function(e) {
     }
 };
 
+// todo: handlers for edit/delete
 var app = new function() {
 
     var DOM_ELEMENTS = {
@@ -34,8 +35,19 @@ var app = new function() {
         DATA_ADAPTER = dataAdapter,
         TREE_ROOT = null,
         manipulator,
-        NODE_BASE_CLASS = "node",
-        LINK_BASE_CLASS = "link"; // CSS class names
+
+        CSS_CLASSNAME_NODE = "node",
+        CSS_CLASSNAME_LINK = "link",
+
+        CSS_CLASSNAME_SELECT = "selected",
+        CSS_CLASSNAME_DELETE = "deleting",
+        CSS_CLASSNAME_EDIT = "editing",
+        CSS_EMPTY_CLASSNAME = "",
+
+        NODE_STATE_ACTION_SELECT = 0,
+        NODE_STATE_ACTION_EDIT = 1,
+        NODE_STATE_ACTION_DELETE = 2,
+        NODE_STATE_ACTIONS = 3;
 
     var setElements = function() {
 
@@ -177,6 +189,8 @@ var app = new function() {
 
             this.moved = function(e) { // limited while pressed
 
+                // @todo: fix immediate double-touch zoom issue
+
                 if (!e.event.changedTouches || e.event.changedTouches.length < 2) {
                     blockEvent(e.event);
                 } else {
@@ -225,14 +239,19 @@ var app = new function() {
                     case 13: { // ENTER
                         if (TREE_ROOT) TREE_ROOT.enterEvent();
                     } break;
+                    case 37: { // LEFT
+                        if (TREE_ROOT) TREE_ROOT.changeStateAction(-1);
+                    } break;
                     case 38: { // UP
                         scrolling(-1);
+                    } break;
+                    case 39: { // RIGHT
+                        if (TREE_ROOT) TREE_ROOT.changeStateAction(1);
                     } break;
                     case 40: { // DOWN
                         scrolling(1);
                     } break;
                 }
-
 
             };
 
@@ -353,7 +372,9 @@ var app = new function() {
                 baseAngle: baseAngle // angle to parent element
             },
             value = "",
-            element = null;
+            element = null,
+
+            currentStateAction = NODE_STATE_ACTION_SELECT;
 
         this.setPosition = function(x, y) {
 
@@ -413,11 +434,20 @@ var app = new function() {
 
         };
 
+        this.changeStateAction = function(delta) {
+
+            currentStateAction =
+                Math.round(currentStateAction + NODE_STATE_ACTIONS + delta) % NODE_STATE_ACTIONS;
+            _this.childController.updateView();
+
+        };
+
         this.getX = function() { return visualNodeProps.x; };
         this.getY = function() { return visualNodeProps.y; };
         this.getR = function() { return visualNodeProps.r; };
         this.getParent = function() { return PARENT_NODE; };
         this.getIndex = function() { return INDEX; };
+        this.getStateAction = function() { return currentStateAction; };
 
         this.getPath = function() {
 
@@ -477,7 +507,7 @@ var app = new function() {
                             beams[last].beam.setRadius(300);
                             beams[last].beam.getNode().childController.removeBeams();
                         } catch (e) {
-
+                            console.error(e);
                         }
                     }
                 }
@@ -568,12 +598,11 @@ var app = new function() {
 
                 }
 
-                updateView();
+                __this.updateView();
 
             };
 
-            var updateView = function() {
-
+            this.updateView = function () {
 
                 if (NODES_FREE_ALIGN) {
                     viewFreeUpdater();
@@ -587,6 +616,17 @@ var app = new function() {
 
             };
 
+            var bydloCode = function() {
+
+                switch (currentStateAction) {
+                    case NODE_STATE_ACTION_SELECT: return CSS_CLASSNAME_SELECT; break;
+                    case NODE_STATE_ACTION_EDIT: return CSS_CLASSNAME_EDIT; break;
+                    case NODE_STATE_ACTION_DELETE: return CSS_CLASSNAME_DELETE; break;
+                    default: return CSS_EMPTY_CLASSNAME;
+                }
+
+            };
+
             var viewFreeUpdater = function() {
 
                 var i = 0,
@@ -595,7 +635,7 @@ var app = new function() {
 
                 for (var b in beams) {
                     if (!beams.hasOwnProperty(b)) continue;
-                    beams[b].beam.highlight(SELECTED_INDEX === beams[b].index); // @improve
+                    beams[b].beam.highlight((SELECTED_INDEX === beams[b].index)?bydloCode():CSS_EMPTY_CLASSNAME); // @improve
                     if (visualNodeProps.baseAngle !== undefined) {
                         angle = Geometry.normalizeAngle(visualNodeProps.baseAngle + Math.PI/2 + Math.PI*i/(mi - 1));
                     } else {
@@ -622,7 +662,7 @@ var app = new function() {
                 for (var b in beams) {
                     if (!beams.hasOwnProperty(b)) continue;
                     d = beams[b].index - VISUAL_SELECTED_INDEX;
-                    beams[b].beam.highlight(SELECTED_INDEX === beams[b].index); // @improve
+                    beams[b].beam.highlight((SELECTED_INDEX === beams[b].index)?bydloCode():CSS_EMPTY_CLASSNAME); // @improve
                     beams[b].beam.getNode().setZIndex(-Math.round(d*d) + 200);
                     beams[b].beam.setAngle(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2 + (visualNodeProps.baseAngle || Math.PI) + Math.PI);
                 }
@@ -652,7 +692,7 @@ var app = new function() {
         var createNodeElement = function() {
 
             var el = document.createElement("DIV");
-            el.className = NODE_BASE_CLASS;
+            el.className = CSS_CLASSNAME_NODE;
             el.innerHTML = "<div><span>" + value + "</span></div>";
             DOM_ELEMENTS.FIELD.appendChild(el);
             return el;
@@ -712,15 +752,11 @@ var app = new function() {
         /**
          * Make node glow (highlight node).
          *
-         * @param glow {Boolean}
+         * @param CSSClassName {Boolean}
          */
-        this.highlight = function(glow) {
+        this.highlight = function(CSSClassName) {
 
-            if (element && glow) {
-                element.className += " selected";
-            } else {
-                element.className = NODE_BASE_CLASS;
-            }
+            element.className = CSS_CLASSNAME_NODE + " " + CSSClassName;
 
         };
 
@@ -774,7 +810,7 @@ var app = new function() {
         var createBeamElement = function() {
 
             var el = document.createElement("DIV");
-            el.className = LINK_BASE_CLASS;
+            el.className = CSS_CLASSNAME_LINK;
             el.innerHTML = "<div><div><div><span>" + subPathName + "</span></div></div></div>"; // @structured
             DOM_ELEMENTS.FIELD.appendChild(el);
 
@@ -821,16 +857,12 @@ var app = new function() {
         /**
          * Make link glow (highlight link).
          *
-         * @param glow {Boolean}
+         * @param CSSClassName {Boolean}
          */
-        this.highlight = function(glow) {
+        this.highlight = function(CSSClassName) {
 
-            if (element && glow) {
-                element.className += " selected";
-            } else {
-                element.className = LINK_BASE_CLASS;
-            }
-            if (node) node.highlight(glow);
+            element.className = CSS_CLASSNAME_LINK + " " + CSSClassName;
+            if (node) node.highlight(CSSClassName);
 
         };
 
@@ -959,6 +991,15 @@ var app = new function() {
 
         };
 
+        /**
+         * Changes type of action which will be performed on selected subnodes.
+         */
+        this.changeStateAction = function(delta) {
+            if (triggeringNode) {
+                triggeringNode.changeStateAction(delta);
+            }
+        };
+
         init();
 
     };
@@ -979,7 +1020,7 @@ var app = new function() {
 
         USE_HARDWARE_ACCELERATION = transformsSupport();
 
-        setElements();
+        setElements(); // variables setup
 
         manipulator = new Manipulator();
         manipulator.initialize();

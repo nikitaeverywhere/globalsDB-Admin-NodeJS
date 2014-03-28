@@ -61,12 +61,16 @@ html, body {
     padding: 3px;
 }
 
-.link.selected, .link.selected > div > div {
+.link.selected, .link.selected > div > div, .node.selected {
     box-shadow: 0 0 6px 4px rgb(114, 255, 179);
 }
 
-.node.selected {
-    box-shadow: 0 0 6px 4px rgb(114, 255, 179);
+.link.editing, .link.editing > div > div, .node.editing {
+    box-shadow: 0 0 6px 4px rgb(255, 250, 10);
+}
+
+.link.deleting, .link.deleting > div > div, .node.deleting {
+    box-shadow: 0 0 6px 4px rgb(255, 0, 5);
 }
 
 .link {
