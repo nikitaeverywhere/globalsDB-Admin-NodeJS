@@ -3,10 +3,12 @@
 
 <head>
     <title>Expand test</title>
-    <script type="text/javascript" src="js/hid.js"></script>
+    <script type="text/javascript" src="js/uiController.js"></script>
+    <script type="text/javascript" src="js/server.js"></script>
     <script type="text/javascript" src="js/dataAdapter.js"></script>
     <script type="text/javascript" src="js/index.js"></script>
     <link rel="stylesheet" href="css/index.css"/>
+    <link rel="stylesheet" href="css/ui.css"/>
 
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
@@ -14,11 +16,50 @@
     <meta name="HandheldFriendly" content="true"/>
 </head>
 
-<body onload="hid.init(); app.init();" onresize="app.updateViewport();">
+<body onload="app.init();" onresize="app.updateViewport();">
 
     <div id="fieldViewport">
         <div id="field">
 
+        </div>
+    </div>
+
+    <div id="ui">
+        <div id="ui-login" class="centralizer">
+            <div>
+                <div>
+                    <form onsubmit="uiController.handle.login(); return false;" class="inlineBlock">
+                        <table>
+                            <thead>
+                            <tr>
+                                <td colspan="2">
+                                    <h1>Log in</h1>
+                                </td>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td><label for="loginHostname">Hostname: </label></td>
+                                <td><input id="loginHostname" type="text"/></td>
+                            </tr>
+                            <tr>
+                                <td><label for="loginPort">Port: </label></td>
+                                <td><input id="loginPort" type="text"/></td>
+                            </tr>
+                            <tr>
+                                <td><label for="loginPassword">Password: </label></td>
+                                <td><input id="loginPassword" type="text"/></td>
+                            </tr>
+                            <tr>
+                                <td colspan="2">
+                                    <input type="submit" value="Submit"/>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 

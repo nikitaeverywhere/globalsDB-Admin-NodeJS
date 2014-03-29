@@ -7,7 +7,9 @@ var dataAdapter = new function() {
         root: {
             ___$: "[ROOT]",
             control: {
-                move: 1,
+                move: {
+                    ___$: 1
+                },
                 test: 1,
                 get: 1,
                 set: 1,
@@ -151,6 +153,45 @@ var dataAdapter = new function() {
         }
 
         return (typeof obj === "object")?((typeof obj[VALUE_PREFIX] === "undefined")?"":obj[VALUE_PREFIX]):obj;
+
+    };
+
+    /**
+     * Set the value in tree.
+     *
+     * @param path
+     * @param value
+     * @returns {boolean}
+     */
+    this.setTestValue = function(path, value) {
+
+//        if (!(path instanceof Array)) return false;
+//
+//        var obj = dataTree,
+//            i = 0;
+//
+//        while (path[i] && typeof obj === "object") {
+//            if (typeof obj[path[i]] === "undefined") {
+//                obj[path[i]] = {};
+//            }
+//            obj = obj[path[i]];
+//            i++;
+//        }
+//
+//        console.log(obj, dataTree);
+
+        dataTree.root["test"] = {
+            s1: "helllo!",
+            100: "Man"
+        };
+
+        dataTree.root.people["test"] = {
+            ___$: "helllo!"
+        };
+
+        console.log(dataTree);
+
+        return true;
 
     };
 

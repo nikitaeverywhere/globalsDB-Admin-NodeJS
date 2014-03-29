@@ -1,0 +1,64 @@
+#ui {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 999999;
+
+    visibility: hidden; /* @overridden */
+    opacity: 0; /* @overridden */
+
+    -webkit-transition: all .3s ease;
+    -moz-transition: all .3s ease;
+    -ms-transition: all .3s ease;
+    -o-transition: all .3s ease;
+    transition: all .3s ease;
+}
+
+.centralizer {
+    position: absolute;
+    display: table;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.centralizer > div {
+    display: table-cell;
+    vertical-align: middle;
+    text-align: center;
+}
+
+.inlineBlock {
+    display: inline-block;
+}
+
+form input {
+    background: rgb(68, 60, 71);
+    outline: none;
+    box-shadow: 0 0 3px 2px rgb(115, 233, 255);
+    border: 0;
+    border-radius: 2px;
+    border: none;
+    padding: 2px;
+    margin: 2px;
+    color: white;
+}
+
+form input[type=submit] {
+    text-decoration: none;
+    padding: 4px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+form input:focus {
+    box-shadow: 0 0 3px 2px rgb(114, 255, 179);
+}
+
+input::-moz-focus-inner {
+    border: 0;
+}

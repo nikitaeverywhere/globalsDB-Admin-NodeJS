@@ -24,7 +24,6 @@ var blockEvent = function(e) {
     }
 };
 
-// todo: handlers for edit/delete
 var app = new function() {
 
     var DOM_ELEMENTS = {
@@ -35,6 +34,8 @@ var app = new function() {
         DATA_ADAPTER = dataAdapter,
         TREE_ROOT = null,
         manipulator,
+
+        ACTION_HANDLERS_ON = true,
 
         CSS_CLASSNAME_NODE = "node",
         CSS_CLASSNAME_LINK = "link",
@@ -237,7 +238,7 @@ var app = new function() {
                         blockEvent(event);
                     } break;
                     case 13: { // ENTER
-                        if (TREE_ROOT) TREE_ROOT.enterEvent();
+                        if (TREE_ROOT) TREE_ROOT.triggerEvent();
                     } break;
                     case 37: { // LEFT
                         if (TREE_ROOT) TREE_ROOT.changeStateAction(-1);
@@ -255,7 +256,7 @@ var app = new function() {
 
             };
 
-            this.keyRelease = function(keyCode) {
+            this.keyRelease = function(keyCode, event) {
                 keyStat[keyCode] = KEY_RELEASED;
             };
 
@@ -286,11 +287,6 @@ var app = new function() {
 
         this.initialize = function() {
 
-            if (!hid) {
-                console.error("Unable to initialize manipulator: hid is undefined.");
-                return;
-            }
-
             manipulator.viewportUpdated();
             _this.resetViewport();
 
@@ -304,41 +300,50 @@ var app = new function() {
             };
 
             DOM_ELEMENTS.VIEWPORT.ontouchstart = function(e) {
+                if (!ACTION_HANDLERS_ON) return;
                 touchObject.pressed = true;
                 setupTouchEvent(e);
                 pointerEvents.started(touchObject);
             };
             DOM_ELEMENTS.VIEWPORT.ontouchmove = function(e) {
+                if (!ACTION_HANDLERS_ON) return;
                 setupTouchEvent(e);
                 pointerEvents.moved(touchObject);
             };
             DOM_ELEMENTS.VIEWPORT.ontouchend = function(e) {
+                if (!ACTION_HANDLERS_ON) return;
                 touchObject.pressed = false;
                 setupTouchEvent(e);
                 pointerEvents.ended(touchObject);
             };
             DOM_ELEMENTS.VIEWPORT.onmousedown = function(e) {
+                if (!ACTION_HANDLERS_ON) return;
                 touchObject.pressed = true;
                 setupTouchEvent(e);
                 pointerEvents.started(touchObject);
             };
             DOM_ELEMENTS.VIEWPORT.onmousemove = function(e) {
+                if (!ACTION_HANDLERS_ON) return;
                 if (!touchObject.pressed) return;
                 setupTouchEvent(e);
                 pointerEvents.moved(touchObject);
             };
             DOM_ELEMENTS.VIEWPORT.onmouseup = function(e) {
+                if (!ACTION_HANDLERS_ON) return;
                 touchObject.pressed = false;
                 setupTouchEvent(e);
                 pointerEvents.ended(touchObject);
             };
             DOM_ELEMENTS.VIEWPORT.onmousewheel = function(e) {
+                if (!ACTION_HANDLERS_ON) return;
                 _this.scaleView(-(e.deltaY || e.wheelDelta)/2000);
             };
             document.body.onkeydown = function(e) {
+                if (!ACTION_HANDLERS_ON) return;
                 keyboardEvents.keyPress(e.keyCode, e);
             };
             document.body.onkeyup = function(e) {
+                if (!ACTION_HANDLERS_ON) return;
                 keyboardEvents.keyRelease(e.keyCode, e);
             };
 
@@ -424,7 +429,7 @@ var app = new function() {
 
         this.setZIndex = function(z) {
 
-            if (element) element.style.zIndex = 11 + z;
+            if (element) element.style.zIndex = z;
 
         };
 
@@ -482,15 +487,46 @@ var app = new function() {
             /**
              * Enters to selected node.
              */
-            this.enter = function() { // @update SELECTED_INDEX => argument
+            this.triggerEvent = function() { // @update SELECTED_INDEX => argument
 
                 if (!beams[SELECTED_INDEX]) return;
 
-                var n = beams[SELECTED_INDEX].beam.getNode();
 
-                beams[SELECTED_INDEX].beam.setRadius(600);
-                n.initChild();
-                TREE_ROOT.setTriggeringNode(n);
+
+                switch (currentStateAction) {
+                    case NODE_STATE_ACTION_SELECT: {
+                        __this.handleSelect();
+                    } break;
+                    case NODE_STATE_ACTION_EDIT: {
+                        __this.handleEdit();
+                    } break;
+                    case NODE_STATE_ACTION_DELETE: {
+                        __this.handleDelete();
+                    }
+                }
+
+            };
+
+            this.handleSelect = function() {
+
+                var beam = beams[SELECTED_INDEX].beam,
+                    node = beam.getNode();
+
+                beam.setRadius(600);
+                node.initChild();
+                TREE_ROOT.setTriggeringNode(node);
+
+            };
+
+            this.handleEdit = function() {
+
+                alert("Edit");
+
+            };
+
+            this.handleDelete = function() {
+
+                alert("Delete?");
 
             };
 
@@ -527,6 +563,23 @@ var app = new function() {
             };
 
             /**
+             * Server data update chain handler. Function forces to make requests to dataAdapter again.
+             */
+            this.update = function() {
+
+                var length = child.length;
+
+                requestBaseData(INITIAL_ELEMENT_NUMBER, child.length - 1);
+
+                console.log("Child controller update", _this.getPath(), child.length !== length);
+
+                if (child.length !== length) {
+                    alignSubNodes();
+                }
+
+            };
+
+            /**
              * Request data.
              *
              * @param number
@@ -534,7 +587,7 @@ var app = new function() {
              */
             var requestBaseData = function(number, fromIndex) {
 
-                var level = DATA_ADAPTER.getLevel(node.getPath(), INITIAL_ELEMENT_NUMBER, child[fromIndex]);
+                var level = DATA_ADAPTER.getLevel(node.getPath(), number, child[fromIndex]);
 
                 for (var i = 0; i < level.length; i++) {
                     child[fromIndex + i] = level[i];
@@ -542,7 +595,15 @@ var app = new function() {
 
                 if (level.length < number) {
                     MAX_DATA_ELEMENTS = child.length;
-                    if (MAX_DATA_ELEMENTS < 12) NODES_FREE_ALIGN = true;
+                    if (MAX_DATA_ELEMENTS < 12) {
+                        NODES_FREE_ALIGN = true;
+                    }
+                    /*setTimeout(function() {
+                        child.push("test");
+                        child.push("me");
+                        MAX_DATA_ELEMENTS += 2;
+                        alignSubNodes();
+                    }, 1000);*/
                 }
 
             };
@@ -553,12 +614,30 @@ var app = new function() {
                       // index: { index: Number, beam: Beam }
                 //}
 
+                /*for (var b in beams) {
+
+                    if (!beams.hasOwnProperty(b)) continue;
+                    beams[b].beam.getNode().childController.removeBeams();
+
+                }*/
+
+                var getBeamsNumber = function() {
+
+                    var bm = 0;
+
+                    for (var i in beams) {
+                        if (!beams.hasOwnProperty(i)) continue;
+                        bm++;
+                    }
+
+                    return bm;
+
+                };
+
                 if (NODES_FREE_ALIGN) {
 
-                    if (!beams.hasOwnProperty("0")) {
-                        for (var u = 0; u < child.length; u++) {
-                            beams[u] = { index: u, beam: new Beam(node, child[u], 0, 300)};
-                        }
+                    for (var u = getBeamsNumber(); u < child.length; u++) {
+                        beams[u] = { index: u, beam: new Beam(node, child[u], 0, 300)};
                     }
 
                 } else {
@@ -616,7 +695,7 @@ var app = new function() {
 
             };
 
-            var bydloCode = function() {
+            var getAppropriateStateActionClassname = function() {
 
                 switch (currentStateAction) {
                     case NODE_STATE_ACTION_SELECT: return CSS_CLASSNAME_SELECT; break;
@@ -635,7 +714,9 @@ var app = new function() {
 
                 for (var b in beams) {
                     if (!beams.hasOwnProperty(b)) continue;
-                    beams[b].beam.highlight((SELECTED_INDEX === beams[b].index)?bydloCode():CSS_EMPTY_CLASSNAME); // @improve
+                    beams[b].beam.highlight(
+                        (SELECTED_INDEX === beams[b].index)?getAppropriateStateActionClassname():CSS_EMPTY_CLASSNAME
+                    ); // @improve
                     if (visualNodeProps.baseAngle !== undefined) {
                         angle = Geometry.normalizeAngle(visualNodeProps.baseAngle + Math.PI/2 + Math.PI*i/(mi - 1));
                     } else {
@@ -662,8 +743,10 @@ var app = new function() {
                 for (var b in beams) {
                     if (!beams.hasOwnProperty(b)) continue;
                     d = beams[b].index - VISUAL_SELECTED_INDEX;
-                    beams[b].beam.highlight((SELECTED_INDEX === beams[b].index)?bydloCode():CSS_EMPTY_CLASSNAME); // @improve
-                    beams[b].beam.getNode().setZIndex(-Math.round(d*d) + 200);
+                    beams[b].beam.highlight(
+                        (SELECTED_INDEX === beams[b].index)?getAppropriateStateActionClassname():CSS_EMPTY_CLASSNAME
+                    ); // @improve
+                    beams[b].beam.setZIndex(-Math.round(d*d) + 200);
                     beams[b].beam.setAngle(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2 + (visualNodeProps.baseAngle || Math.PI) + Math.PI);
                 }
 
@@ -760,6 +843,16 @@ var app = new function() {
 
         };
 
+        _this.handle = {
+
+            updateChild: function() {
+
+                _this.childController.update();
+
+            }
+
+        };
+
         var init = function() {
 
             joinParent(PARENT_NODE);
@@ -832,6 +925,13 @@ var app = new function() {
 
             visualBeamProps.r = radius;
             updateView();
+
+        };
+
+        this.setZIndex = function(z) {
+
+            if (element) element.style.zIndex = 11 + z;
+            if (node) node.setZIndex(12 + z);
 
         };
 
@@ -959,6 +1059,14 @@ var app = new function() {
 
         };
 
+        var treeUpdate = function(path) {
+
+            if (triggeringNode) triggeringNode.handle.updateChild(); // todo: for other nodes
+
+        };
+
+        dataAdapter.updated = treeUpdate;
+
         /**
          * Scroll nodes for delta. Delta = 1 will scroll to 1 next node.
          *
@@ -970,9 +1078,9 @@ var app = new function() {
 
         };
 
-        this.enterEvent = function() {
+        this.triggerEvent = function() {
 
-            if (triggeringNode) triggeringNode.childController.enter();
+            if (triggeringNode) triggeringNode.childController.triggerEvent();
 
         };
 
@@ -1005,11 +1113,33 @@ var app = new function() {
     };
 
     /**
+     * Switches control to application (enables handlers)
+     */
+    this.switchControl = function(enabled) {
+
+        ACTION_HANDLERS_ON = enabled?true:false;
+
+    };
+
+    /**
      * Update the viewport.
      */
     this.updateViewport = function() {
 
-        manipulator.viewportUpdated();
+        if (manipulator) manipulator.viewportUpdated();
+
+    };
+
+    /**
+     * Set of handlers.
+     */
+    this.handle = {
+
+        connectionClose: function() {
+
+
+
+        }
 
     };
 
@@ -1026,6 +1156,9 @@ var app = new function() {
         manipulator.initialize();
 
         TREE_ROOT = new treeRoot();
+
+        uiController.init();
+        uiController.showLoginForm();
 
     }
 
