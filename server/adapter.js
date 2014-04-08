@@ -116,6 +116,10 @@ module.exports = function() {
 
     };
 
+    this.getOpened = function() {
+        return LOGGED;
+    };
+
     var init = function() {
 
         db = new DB();

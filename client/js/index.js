@@ -1045,7 +1045,7 @@ var app = new function() {
     /**
      * Tree root has basic tree control capabilities.
      */
-    var treeRoot = function() {
+    var TreeRoot = function() {
 
         var _this = this,
             rootNode = null,
@@ -1059,13 +1059,15 @@ var app = new function() {
 
         };
 
-        var treeUpdate = function(path) {
+        /**
+         * @override
+         * @param path
+         */
+        dataAdapter.updated = function(path) {
 
             if (triggeringNode) triggeringNode.handle.updateChild(); // todo: for other nodes
 
         };
-
-        dataAdapter.updated = treeUpdate;
 
         /**
          * Scroll nodes for delta. Delta = 1 will scroll to 1 next node.
@@ -1096,6 +1098,17 @@ var app = new function() {
             triggeringNode = node;
 
             manipulator.setViewCenter(node.getX(), node.getY());
+
+        };
+
+        /**
+         * Removes the tree.
+         */
+        this.remove = function() {
+
+            if (rootNode) rootNode.remove();
+            triggeringNode = null;
+            rootNode = null;
 
         };
 
@@ -1144,6 +1157,28 @@ var app = new function() {
     };
 
     /**
+     * Resets tree root for new or existing adapter. Adapter will be reset too.
+     *
+     * [ @param adapter ]
+     */
+    this.resetTreeRoot = function(adapter) {
+
+        if (TREE_ROOT) {
+            TREE_ROOT.remove();
+        }
+
+        // todo: unit/method testing
+        if (adapter) {
+            DATA_ADAPTER = adapter;
+        }
+
+        DATA_ADAPTER.reset();
+
+        TREE_ROOT = new TreeRoot();
+
+    };
+
+    /**
      * Initialize application.
      */
     this.init = function() {
@@ -1155,10 +1190,10 @@ var app = new function() {
         manipulator = new Manipulator();
         manipulator.initialize();
 
-        TREE_ROOT = new treeRoot();
+        TREE_ROOT = new TreeRoot();
 
         uiController.init();
-        uiController.showLoginForm();
+        uiController.switchConnectForm();
 
     }
 

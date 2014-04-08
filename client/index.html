@@ -25,6 +25,42 @@
     </div>
 
     <div id="ui">
+        <div id="ui-connect" class="centralizer">
+            <div>
+                <div>
+                    <form onsubmit="uiController.handle.connect(); return false;" class="inlineBlock">
+                        <table>
+                            <thead>
+                            <tr>
+                                <td colspan="2">
+                                    <h1>Server connection</h1>
+                                </td>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td><label for="connectHostname">Hostname: </label></td>
+                                <td><input id="connectHostname" type="text"/></td>
+                            </tr>
+                            <tr>
+                                <td><label for="connectPort">Port: </label></td>
+                                <td><input id="connectPort" type="text"/></td>
+                            </tr>
+                            <tr>
+                                <td><label for="connectPassword">Password: </label></td>
+                                <td><input id="connectPassword" type="password"/></td>
+                            </tr>
+                            <tr>
+                                <td colspan="2">
+                                    <input id="connectButton" type="submit" value="Connect"/>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </form>
+                </div>
+            </div>
+        </div>
         <div id="ui-login" class="centralizer">
             <div>
                 <div>
@@ -33,26 +69,36 @@
                             <thead>
                             <tr>
                                 <td colspan="2">
-                                    <h1>Log in</h1>
+                                    <h1>Login</h1>
                                 </td>
                             </tr>
                             </thead>
                             <tbody>
                             <tr>
-                                <td><label for="loginHostname">Hostname: </label></td>
-                                <td><input id="loginHostname" type="text"/></td>
-                            </tr>
-                            <tr>
-                                <td><label for="loginPort">Port: </label></td>
-                                <td><input id="loginPort" type="text"/></td>
+                                <td><label for="loginUsername">Username: </label></td>
+                                <td><input id="loginUsername" type="text" value="_system"/></td>
                             </tr>
                             <tr>
                                 <td><label for="loginPassword">Password: </label></td>
-                                <td><input id="loginPassword" type="text"/></td>
+                                <td><input id="loginPassword" type="password" value="SYS"/></td>
+                            </tr>
+                            <tr>
+                                <td><label for="loginNamespace">Namespace: </label></td>
+                                <td><input id="loginNamespace" type="text" value="USER"/></td>
+                            </tr>
+                            <tr>
+                                <td><label for="loginDatabase">Database: </label></td>
+                                <td style="text-align: right;">
+                                    <select id="loginDatabase">
+                                        <option>Test1</option>
+                                        <option>Test2</option>
+                                        <option>Test3</option>
+                                    </select>
+                                </td>
                             </tr>
                             <tr>
                                 <td colspan="2">
-                                    <input type="submit" value="Submit"/>
+                                    <input id="loginButton" type="submit" value="Login"/>
                                 </td>
                             </tr>
                             </tbody>
@@ -60,6 +106,26 @@
                     </form>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div id="ui-infoBar">
+
+    </div>
+
+    <div id="ui-message" class="centralizer">
+        <div>
+            <form onsubmit="uiController.handle.messageClose(); return false;" class="inlineBlock">
+                <div id="ui-message-head">
+                    Test message head
+                </div>
+                <div id="ui-message-body">
+                    Test message body
+                </div>
+                <div>
+                    <input type="submit" value="OK"/>
+                </div>
+            </form>
         </div>
     </div>
 

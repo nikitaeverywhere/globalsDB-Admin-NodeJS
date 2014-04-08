@@ -1,15 +1,14 @@
 #ui {
     position: fixed;
-    left: 0;
+    left: 100%; /* @overridden */
     top: 0;
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
-    z-index: 999999;
+    z-index: 99999;
+}
 
-    visibility: hidden; /* @overridden */
-    opacity: 0; /* @overridden */
-
+#ui, #ui-message, #ui > div {
     -webkit-transition: all .3s ease;
     -moz-transition: all .3s ease;
     -ms-transition: all .3s ease;
@@ -36,16 +35,24 @@
     display: inline-block;
 }
 
-form input {
+form input, select {
     background: rgb(68, 60, 71);
     outline: none;
     box-shadow: 0 0 3px 2px rgb(115, 233, 255);
-    border: 0;
     border-radius: 2px;
     border: none;
     padding: 2px;
     margin: 2px;
     color: white;
+    appearance: none;
+    -o-appearance: none;
+    -ms-appearance: none;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+}
+
+select:after {
+    content: "test";
 }
 
 form input[type=submit] {
@@ -55,10 +62,42 @@ form input[type=submit] {
     cursor: pointer;
 }
 
+form input[type=submit]:hover {
+    box-shadow: 0 0 5px 3px rgb(114, 255, 179);
+}
+
+form input[disabled] {
+    background: rgb(75, 75, 75) !important;
+    box-shadow: 0 0 3px 2px rgb(127, 127, 127) !important;
+}
+
 form input:focus {
     box-shadow: 0 0 3px 2px rgb(114, 255, 179);
 }
 
 input::-moz-focus-inner {
     border: 0;
+}
+
+#ui-infoBar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 100000;
+}
+
+#ui-message {
+    left: -100%;
+    background: black;
+    visibility: visible !important;
+    z-index: 100001;
+}
+
+#ui-message form > div:first-child {
+    font-size: 200%;
+    font-weight: 900;
+}
+
+#ui-message form > div {
+    margin: 15px;
 }

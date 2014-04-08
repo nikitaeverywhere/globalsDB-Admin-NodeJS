@@ -195,4 +195,15 @@ var dataAdapter = new function() {
 
     };
 
+    /**
+     * Clears the tree.
+     */
+    this.reset = function() {
+
+        dataTree.root = {
+            ___$: "[ROOT]"
+        };
+
+    };
+
 };

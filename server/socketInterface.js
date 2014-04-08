@@ -92,6 +92,7 @@ module.exports = new function() {
             id: id,
             socket: ws,
             logged: false,
+            authorized: false,
             adapter: null
         };
 
@@ -136,7 +137,7 @@ module.exports = new function() {
 
         } catch(e) { return }
 
-        if (client.logged) {
+        if (client.logged && client.authorized) { // if authorized and logged
 
             if (!client.adapter) return;
 
@@ -152,11 +153,7 @@ module.exports = new function() {
                 send(client, data);
             });
 
-        } else if (data.login) {
-
-            if (!client.adapter) {
-                client.adapter = new Adapter();
-            }
+        } else if (!client.authorized) { // if not authorized
 
             if (config.server.useMasterPassword) {
                 if (data.masterPassword !== config.server.masterPassword) {
@@ -166,7 +163,44 @@ module.exports = new function() {
                 }
             }
 
-            client.adapter.asynchronousRequest({
+            var dbs = config.database.databases,
+                dbs1 = [];
+
+            for (var i in dbs) {
+                if (!dbs.hasOwnProperty(i)) continue;
+                dbs1.push(i);
+            }
+
+            send(client, {
+                __id: data.__id,
+                databases: dbs1,
+                error: 0
+            });
+
+            client.authorized = true;
+
+            /*client.adapter.asynchronousRequest({
+                request: "open",
+                data: {
+                    path: "C:/temp/lal/lal",
+                    login: data.login,
+                    password: data.password,
+                    namespace: data.namespace
+                }
+            }, function(dbData) {
+                console.log(dbData);
+                client.adapter.asynchronousRequest({
+                    request: "setNode",
+                    data: {
+                        pathArray: ["testMeNode"],
+                        data: "test for creating new database"
+                    }
+                }, function(ee) {
+                    console.log(ee);
+                });
+            });*/
+
+            /*client.adapter.asynchronousRequest({
                 request: "open",
                 data: {
                     path: config.database.databases[0], // @debug
@@ -185,13 +219,60 @@ module.exports = new function() {
                     });
                     client.logged = true;
                 }
+            });*/
+
+        } else if (!client.logged && client.authorized) { // if authorized but not logged
+            // creating db adapter for client if not exists || reset db connection.
+
+            if (!client.adapter) {
+                client.adapter = new Adapter();
+            } else {
+                console.log("HAS ADAPTER socketInterface.js todo"); // todo
+            }
+
+            if (!config.database.databases[data.database]) {
+                send(client, {
+                    __id: data.__id,
+                    error: 1,
+                    reason: "Database " + data.database + " not configured on server."
+                });
+                return;
+            }
+
+            client.adapter.asynchronousRequest({
+                request: "open",
+                data: {
+                    path: config.database.databases[data.database] || "",
+                    login: data.username,
+                    password: data.password,
+                    namespace: data.namespace
+                }
+            }, function(dbData) {
+                if (config.server.log) logLogin(!dbData.error, data, getSocketIP(client.socket));
+                if (dbData.error) {
+
+                    send(client, {
+                        __id: data.__id,
+                        error: 1,
+                        reason: "Wrong login data.",
+                        data: dbData
+                    });
+
+                } else {
+
+                    send(client, {
+                        __id: data.__id,
+                        error: 0
+                    });
+                    client.logged = true;
+
+                }
             });
 
 
+        } else { // something weird
 
-        } else {
-
-            client.socket.close(); // say goodbye
+            client.socket.close();
 
         }
 

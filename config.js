@@ -4,10 +4,10 @@
 module.exports = {
 
     database: {
-        modulePath: "./../node_modules/globalsDB/cache", // globalsDB path to node module file (without extension)
-        databases: [ // list of available database directories
-            "C:/HardProgram/Globals/mgr"
-        ]
+        modulePath: "./node_modules/globalsDB/cache", // globalsDB path to node module file (without extension)
+        databases: { // list of available database directories
+            sampleDatabase: "C:/HardProgram/Globals/mgr"
+        }
     },
 
     server: { // server settings

@@ -46,6 +46,7 @@ var server = new function() {
 
         for (var i in handlers) {
             if (!handlers.hasOwnProperty(i)) continue;
+            if (LOG_DATA) console.log("<< " + i + " << CONNECTION_ABORT");
             handlers[i](false, {
                 error: 1,
                 result: false,
@@ -77,7 +78,7 @@ var server = new function() {
             handlers[data.__id](data);
             delete handlers[data.__id];
         } else {
-            if (LOG_DATA) console.log("<<", data);
+            if (LOG_DATA) console.log("<< [not handled] <<", data);
         }
 
     };
