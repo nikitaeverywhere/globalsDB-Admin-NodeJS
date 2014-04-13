@@ -50,7 +50,12 @@ var app = new function() {
         NODE_STATE_ACTION_DELETE = 2,
         NODE_STATE_ACTIONS = 3,
 
-        MIN_NODES_DISTANCE = 100; // minimal distance between nodes
+        MIN_NODES_DISTANCE = 110, // minimal distance between nodes
+        BASE_NODE_RADIUS = 140,
+        TREE_NODE_RADIUS = 80,
+
+        TRIGGER_ADD = 0,
+        TRIGGER_JUMP = 1;
 
     var setElements = function() {
 
@@ -357,19 +362,19 @@ var app = new function() {
      * Node element.
      *
      * @param parentNode {Node} Parent node
-     * @param index {Array} Node index
+     * @param initialIndex {Array} Node index. In case of string, node will try require data in data adapter with it's path.
+     *  In case of object, node will get new properties.
      * @param baseAngle
      * [ @param startX ]
      * [ @param startY ]
-     * [ @param startR ]
      * @constructor
      */
-    var Node = function(parentNode, index, baseAngle, startX, startY, startR) {
+    var Node = function(parentNode, initialIndex, baseAngle, startX, startY) {
 
         var _this = this,
             PARENT_NODE = (parentNode instanceof Node)?parentNode:null,
             CHILD_NODES = [],
-            INDEX = index,
+            INDEX = "",
             visualNodeProps = {
                 x: 0,
                 y: 0,
@@ -425,7 +430,7 @@ var app = new function() {
         this.setIndex = function(index) { // @improve (value method)
 
             INDEX = index;
-            _this.setValue(DATA_ADAPTER.getValue(_this.getPath()));
+            _this.updateValue();
 
         };
 
@@ -484,13 +489,43 @@ var app = new function() {
                 beams = {
                     // index: { index: Number, beam: Beam }
                 },
-                MAX_DATA_ELEMENTS = Infinity, // todo: UPDATE AGAIN WHEN DATA_ADAPTER UPDATE
+                ADDITIONAL_CHILD = 0,
                 MAX_VISUAL_ELEMENTS = 15,
                 INITIAL_ELEMENT_NUMBER = 30,
                 SELECTED_INDEX = 0,
                 VISUAL_SELECTED_INDEX = 0, // for animation
                 updateViewInterval = 0,
                 NODES_FREE_ALIGN = true; // shows if place nodes free (not to fix them with selector)
+
+            /**
+             * Function updates extra child control according to current NODES_FREE_ALIGN constant.
+             */
+            var resetExtraChild = function() {
+
+                child[-1] = undefined;
+                child[-2] = undefined;
+
+                var search = {
+                        name: "jump to node",
+                        value: "<img class=\"jumpIcon\"/>",
+                        trigger: TRIGGER_JUMP
+                    },
+                    add = {
+                        name: "add node",
+                        value: "<img class=\"addIcon\"/>",
+                        trigger: TRIGGER_ADD
+                    };
+
+                if (NODES_FREE_ALIGN) {
+                    ADDITIONAL_CHILD = 1;
+                    child[-1] = add;
+                } else {
+                    ADDITIONAL_CHILD = 2;
+                    child[-1] = add;
+                    child[-2] = search;
+                }
+
+            };
 
             /**
              * Return child node with given name = index.
@@ -534,12 +569,24 @@ var app = new function() {
 
             };
 
+            var handleTrigger = function(trigger) {
+
+                console.log("Trigger handled");
+
+            };
+
             this.handleSelect = function() {
 
                 var beam = beams[SELECTED_INDEX].beam,
-                    node = beam.getNode();
+                    node = beam.getNode(),
+                    nodeIndex = node.getIndex();
 
-                beam.setRadius(beam.getInitialRadius()*2);
+                if (typeof nodeIndex === "object" && typeof nodeIndex.trigger !== "undefined") {
+                    handleTrigger(nodeIndex.trigger);
+                    return;
+                }
+
+                beam.setRadius(beam.getInitialRadius()*2.5); // @split to function
                 node.initChild();
                 TREE_ROOT.setTriggeringNode(node);
 
@@ -562,9 +609,10 @@ var app = new function() {
                 var last = SELECTED_INDEX;
 
                 if (NODES_FREE_ALIGN) {
-                    SELECTED_INDEX = (SELECTED_INDEX + indexDelta + child.length) % child.length;
+                    SELECTED_INDEX = (SELECTED_INDEX + indexDelta + child.length + ADDITIONAL_CHILD)
+                        % (child.length + ADDITIONAL_CHILD);
                 } else {
-                    SELECTED_INDEX = Math.max(0, Math.min(child.length - 1, SELECTED_INDEX + indexDelta));
+                    SELECTED_INDEX = Math.max(-ADDITIONAL_CHILD, Math.min(child.length - 1, SELECTED_INDEX + indexDelta));
                     if (last !== SELECTED_INDEX) {
                         try {
                             beams[last].beam.setRadius(beams[last].beam.getInitialRadius());
@@ -602,7 +650,7 @@ var app = new function() {
 
                 updateFromModel();
 
-                if (child.length !== length) {
+                if (child.length !== length) { // @test
                     alignSubNodes();
                 }
 
@@ -624,20 +672,11 @@ var app = new function() {
                     NODES_FREE_ALIGN = false;
                 }
 
+                resetExtraChild();
+
             };
 
             var alignSubNodes = function() {
-
-                //beams = {
-                      // index: { index: Number, beam: Beam }
-                //}
-
-                /*for (var b in beams) {
-
-                    if (!beams.hasOwnProperty(b)) continue;
-                    beams[b].beam.getNode().childController.removeBeams();
-
-                }*/
 
                 var getBeamsNumber = function() {
 
@@ -654,13 +693,20 @@ var app = new function() {
 
                 if (NODES_FREE_ALIGN) {
 
-                    for (var u = getBeamsNumber(); u < child.length; u++) {
-                        beams[u] = { index: u, beam: new Beam(node, child[u], 0, 0)};
+                    // this weird code does the next: removes beams for ADDITIONAL_CHILD from the end & pushes loaded
+                    // elements. E.g. replaces [x, x, x, ADDITIONAL, ADDITIONAL, ...] to [x, x, x, newX, newX]
+                    // useful when dataAdapter updates.
+                    for (var u = Math.max(getBeamsNumber() - ADDITIONAL_CHILD, 0); u < child.length + ADDITIONAL_CHILD; u++) {
+                        if (beams[u]) beams[u].beam.remove();
+                        beams[u] = {
+                            index: u,
+                            beam: new Beam(node, (u<child.length)?child[u]:child[child.length-u-1], 0, 0)
+                        };
                     }
 
                 } else {
 
-                    var fromIndex = Math.max(Math.ceil(SELECTED_INDEX - MAX_VISUAL_ELEMENTS/2), 0),
+                    var fromIndex = Math.max(Math.ceil(SELECTED_INDEX - MAX_VISUAL_ELEMENTS/2), -ADDITIONAL_CHILD),
                         toIndex = Math.min(Math.floor(SELECTED_INDEX + MAX_VISUAL_ELEMENTS/2), child.length),
                         deprecatedBeams = [ /* { index, beam } */ ],
                         i, tempBeam;
@@ -676,8 +722,14 @@ var app = new function() {
                     for (i = fromIndex; i < toIndex; i++) {
 
                         if (beams.hasOwnProperty(i.toString())) { // update
-                            //beams[i].index = visualNodeProps.baseAngle + Math.PI + (SELECTED_INDEX - i);
-                        } else if (deprecatedBeams.length) { // reset
+                            if (typeof beams[i].beam.getSubPath() === "object") { // override trigger
+                                beams[i].beam.remove();
+                            } else {
+                                continue; // skip iteration (else-branch)
+                            }
+                        }
+
+                        if (deprecatedBeams.length) { // reset
                             tempBeam = deprecatedBeams.pop();
                             tempBeam.beam.setSubPathName(child[i]);
                             tempBeam.index = i;
@@ -685,7 +737,7 @@ var app = new function() {
                             //tempNode = tempBeam.getNode();
                             //tempNode.setValue(dataAdapter.getValue(tempNode.getPath())); // @wrong! SetPath!!!
                         } else { // create
-                            beams[i] = { index: i, beam: new Beam(node, child[i], 0, 0)}; // @todo
+                            beams[i] = { index: i, beam: new Beam(node, child[i], 0, 0)};
                         }
 
                     }
@@ -743,21 +795,38 @@ var app = new function() {
             var viewFreeUpdater = function() {
 
                 var i = 0,
-                    mi = (child.length < 2)?2:child.length,
-                    angle, dAngle;
+                    mi = child.length + ADDITIONAL_CHILD,//mi = (child.length + ADDITIONAL_CHILD < 1)?1:(child.length + ADDITIONAL_CHILD),
+                    angle, dAngle, aAngle, bAngle,
+                    baseAngleDefined = (visualNodeProps.baseAngle !== undefined)?1:0;
 
+                // @weirdMath
                 for (var b in beams) {
                     if (!beams.hasOwnProperty(b)) continue;
                     beams[b].beam.highlight(
                         (SELECTED_INDEX === beams[b].index)?getAppropriateStateActionClassname():CSS_EMPTY_CLASSNAME
                     ); // @improve
-                    if (visualNodeProps.baseAngle !== undefined) {
+                    if (baseAngleDefined) {
+                        bAngle = 0;
+                        aAngle = Math.PI;
+                        aAngle = Math.min(aAngle, Math.PI/6*mi);
+                        dAngle = aAngle/(mi || 1);
+                    } else {
+                        bAngle = (1/mi)*2*Math.PI/2;
+                        aAngle = 2*Math.PI - (1/mi)*2*Math.PI;
+                        dAngle = aAngle/(mi || 1);
+                    }
+
+                    angle = Geometry.normalizeAngle(
+                        (visualNodeProps.baseAngle || 0) + Math.PI - ((mi > 1)?aAngle/2:0) + (i/(mi - 1 || 1))*aAngle
+                        - bAngle
+                    ) || 0;
+                    /*if (visualNodeProps.baseAngle !== undefined) {
                         angle = Geometry.normalizeAngle(visualNodeProps.baseAngle + Math.PI/2 + Math.PI*i/(mi - 1));
                         dAngle = Math.PI/mi;
                     } else {
                         angle = 2*Math.PI*i/mi;
                         dAngle = 2*Math.PI/mi;
-                    }
+                    }*/
                     if (!beams[b].beam.getInitialRadius()) {
                         beams[b].beam.setRadius(Math.max(
                             beams[b].beam.getNode().getR()/Math.tan(dAngle/2),
@@ -882,7 +951,11 @@ var app = new function() {
 
         this.updateValue = function() {
 
-            _this.setValue(DATA_ADAPTER.getValue(_this.getPath()));
+            if (typeof INDEX === "object") {
+                _this.setValue(INDEX.value);
+            } else {
+                _this.setValue(DATA_ADAPTER.getValue(_this.getPath()));
+            }
 
         };
 
@@ -913,9 +986,9 @@ var app = new function() {
 
             element = createNodeElement();
             _this.setPosition(startX, startY);
-            _this.setRadius(300);
+            _this.setRadius((parentNode != null)?TREE_NODE_RADIUS:BASE_NODE_RADIUS);
 
-            _this.updateValue();
+            _this.setIndex(initialIndex);
             updateView();
 
         };
@@ -928,13 +1001,13 @@ var app = new function() {
      * Connects parentNode and node with position controlling under node.
      *
      * @param parentNode
-     * @param subPathName
+     * @param subPath
      * [ @param initialAngle ]
      * [ @param initialRadius ]
      *
      * @constructor
      */
-    var Beam = function(parentNode, subPathName, initialAngle, initialRadius) {
+    var Beam = function(parentNode, subPath, initialAngle, initialRadius) {
 
         var visualBeamProps = {
                 angle: Geometry.normalizeAngle(initialAngle || 0),
@@ -947,11 +1020,10 @@ var app = new function() {
             },
             node = new Node(
                 parentNode,
-                subPathName,
+                subPath,
                 Geometry.normalizeAngle(visualBeamProps.angle + Math.PI),
                 0,
-                0,
-                parentNode.getR()
+                0
             ),
             element = null;
 
@@ -959,7 +1031,9 @@ var app = new function() {
 
             var el = document.createElement("DIV");
             el.className = CSS_CLASSNAME_LINK;
-            el.innerHTML = "<div><div><div><span>" + subPathName + "</span></div></div></div>"; // @structured
+            el.innerHTML = "<div><div><div><span>" +
+                ((typeof subPath !== "object")?subPath:subPath.name)
+                + "</span></div></div></div>"; // @structured
             DOM_ELEMENTS.FIELD.appendChild(el);
 
             visualBeamProps.HALF_HEIGHT = parseFloat(el.clientHeight)/2 || 3;
@@ -1001,9 +1075,10 @@ var app = new function() {
 
         this.setSubPathName = function(index) {
 
-            subPathName = index;
+            subPath = index;
             try {
-                element.childNodes[0].childNodes[0].childNodes[0].childNodes[0].innerHTML = index;
+                element.childNodes[0].childNodes[0].childNodes[0].childNodes[0].innerHTML =
+                    (typeof subPath !== "object")?subPath:subPath.name;
             } catch (e) {
                 console.error("Unable to set value to beam DOM element", e);
             }
@@ -1024,7 +1099,7 @@ var app = new function() {
         };
 
         this.getNode = function() { return node; };
-        this.getSubPath = function() { return subPathName; };
+        this.getSubPath = function() { return subPath; };
         this.getParentNode = function() { return parentNode; };
         this.getAngle = function() { return visualBeamProps.angle; };
         this.getRadius = function() { return visualBeamProps.r; };
@@ -1111,7 +1186,7 @@ var app = new function() {
 
         var init = function() {
 
-            rootNode = new Node(null, "root", undefined, 0, 0, 80);
+            rootNode = new Node(null, "root", undefined, 0, 0);
             triggeringNode = rootNode;
             rootNode.initChild();
 

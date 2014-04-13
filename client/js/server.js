@@ -3,7 +3,7 @@ var server = new function() {
     var ws,
         CONNECTED = false,
         connectionHandler,
-        LOG_DATA = true,
+        LOG_DATA = false,
         handlers = {};
 
     var generateHandlerID = function() {
