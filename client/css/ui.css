@@ -9,7 +9,7 @@
 }
 
 #ui, #ui-message, #ui > div {
-    -webkit-transition: all .3s ease;
+    -webkit-transition: all .3s ease;      /*.3*/
     -moz-transition: all .3s ease;
     -ms-transition: all .3s ease;
     -o-transition: all .3s ease;

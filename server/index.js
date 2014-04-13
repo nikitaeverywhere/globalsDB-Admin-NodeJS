@@ -6,6 +6,11 @@ module.exports = new function() {
         database = require("./database.js"),
         webSocketInterface = require("./socketInterface.js");
 
+    /**
+     * Initializes server and returns if success.
+     *
+     * @returns {boolean}
+     */
     this.init = function() {
 
         webSocketInterface.init();
@@ -15,6 +20,8 @@ module.exports = new function() {
             app.listen(config.localClient.port);
             console.log("Client joined.");
         }
+
+        return true;
 
     };
 

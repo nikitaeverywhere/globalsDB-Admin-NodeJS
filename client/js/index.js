@@ -48,7 +48,9 @@ var app = new function() {
         NODE_STATE_ACTION_SELECT = 0,
         NODE_STATE_ACTION_EDIT = 1,
         NODE_STATE_ACTION_DELETE = 2,
-        NODE_STATE_ACTIONS = 3;
+        NODE_STATE_ACTIONS = 3,
+
+        MIN_NODES_DISTANCE = 100; // minimal distance between nodes
 
     var setElements = function() {
 
@@ -468,6 +470,12 @@ var app = new function() {
 
         };
 
+        this.getChildNode = function(nodeIndex) {
+
+            return _this.childController.getChildNodeByIndex(nodeIndex);
+
+        };
+
         this.childController = new function() {
 
             var __this = this,
@@ -482,7 +490,28 @@ var app = new function() {
                 SELECTED_INDEX = 0,
                 VISUAL_SELECTED_INDEX = 0, // for animation
                 updateViewInterval = 0,
-                NODES_FREE_ALIGN = false; // shows if place nodes free (not to fix them with selector)
+                NODES_FREE_ALIGN = true; // shows if place nodes free (not to fix them with selector)
+
+            /**
+             * Return child node with given name = index.
+             *
+             * @param index
+             */
+            this.getChildNodeByIndex = function(index) {
+
+                var node;
+
+                for (var b in beams) {
+                    if (!beams.hasOwnProperty(b)) continue;
+                    node = beams[b].beam.getNode();
+                    if (node.getIndex() === index) {
+                        return node;
+                    }
+                }
+
+                return null;
+
+            };
 
             /**
              * Enters to selected node.
@@ -490,8 +519,6 @@ var app = new function() {
             this.triggerEvent = function() { // @update SELECTED_INDEX => argument
 
                 if (!beams[SELECTED_INDEX]) return;
-
-
 
                 switch (currentStateAction) {
                     case NODE_STATE_ACTION_SELECT: {
@@ -512,7 +539,7 @@ var app = new function() {
                 var beam = beams[SELECTED_INDEX].beam,
                     node = beam.getNode();
 
-                beam.setRadius(600);
+                beam.setRadius(beam.getInitialRadius()*2);
                 node.initChild();
                 TREE_ROOT.setTriggeringNode(node);
 
@@ -540,12 +567,16 @@ var app = new function() {
                     SELECTED_INDEX = Math.max(0, Math.min(child.length - 1, SELECTED_INDEX + indexDelta));
                     if (last !== SELECTED_INDEX) {
                         try {
-                            beams[last].beam.setRadius(300);
+                            beams[last].beam.setRadius(beams[last].beam.getInitialRadius());
                             beams[last].beam.getNode().childController.removeBeams();
                         } catch (e) {
                             console.error(e);
                         }
                     }
+                }
+
+                if (SELECTED_INDEX + MAX_VISUAL_ELEMENTS/2 > child.length) {
+                    updateFromModel();
                 }
 
                 if (last !== SELECTED_INDEX) alignSubNodes();
@@ -569,9 +600,7 @@ var app = new function() {
 
                 var length = child.length;
 
-                requestBaseData(INITIAL_ELEMENT_NUMBER, child.length - 1);
-
-                console.log("Child controller update", _this.getPath(), child.length !== length);
+                updateFromModel();
 
                 if (child.length !== length) {
                     alignSubNodes();
@@ -581,29 +610,18 @@ var app = new function() {
 
             /**
              * Request data.
-             *
-             * @param number
-             * @param fromIndex
              */
-            var requestBaseData = function(number, fromIndex) {
+            var updateFromModel = function() {
 
-                var level = DATA_ADAPTER.getLevel(node.getPath(), number, child[fromIndex]);
+                var fromIndex = Math.max(child.length - 1, 0),
+                    level = DATA_ADAPTER.getLevel(node.getPath(), INITIAL_ELEMENT_NUMBER, child[fromIndex]);
 
                 for (var i = 0; i < level.length; i++) {
                     child[fromIndex + i] = level[i];
                 }
 
-                if (level.length < number) {
-                    MAX_DATA_ELEMENTS = child.length;
-                    if (MAX_DATA_ELEMENTS < 12) {
-                        NODES_FREE_ALIGN = true;
-                    }
-                    /*setTimeout(function() {
-                        child.push("test");
-                        child.push("me");
-                        MAX_DATA_ELEMENTS += 2;
-                        alignSubNodes();
-                    }, 1000);*/
+                if (level.length + fromIndex - 1 > MAX_VISUAL_ELEMENTS) {
+                    NODES_FREE_ALIGN = false;
                 }
 
             };
@@ -637,7 +655,7 @@ var app = new function() {
                 if (NODES_FREE_ALIGN) {
 
                     for (var u = getBeamsNumber(); u < child.length; u++) {
-                        beams[u] = { index: u, beam: new Beam(node, child[u], 0, 300)};
+                        beams[u] = { index: u, beam: new Beam(node, child[u], 0, 0)};
                     }
 
                 } else {
@@ -663,10 +681,11 @@ var app = new function() {
                             tempBeam = deprecatedBeams.pop();
                             tempBeam.beam.setSubPathName(child[i]);
                             tempBeam.index = i;
+                            beams[i] = tempBeam;
                             //tempNode = tempBeam.getNode();
                             //tempNode.setValue(dataAdapter.getValue(tempNode.getPath())); // @wrong! SetPath!!!
                         } else { // create
-                            beams[i] = { index: i, beam: new Beam(node, child[i], 0, 300)};
+                            beams[i] = { index: i, beam: new Beam(node, child[i], 0, 0)}; // @todo
                         }
 
                     }
@@ -677,6 +696,7 @@ var app = new function() {
 
                 }
 
+                __this.forceViewUpdate();
                 __this.updateView();
 
             };
@@ -695,6 +715,20 @@ var app = new function() {
 
             };
 
+            this.forceViewUpdate = function() {
+
+                if (NODES_FREE_ALIGN) {
+                    viewFreeUpdater();
+                    updateViewInterval = 0;
+                    return;
+                }
+
+                clearInterval(updateViewInterval);
+                updateViewInterval = 0;
+                viewScrollUpdater()
+
+            };
+
             var getAppropriateStateActionClassname = function() {
 
                 switch (currentStateAction) {
@@ -710,7 +744,7 @@ var app = new function() {
 
                 var i = 0,
                     mi = (child.length < 2)?2:child.length,
-                    angle;
+                    angle, dAngle;
 
                 for (var b in beams) {
                     if (!beams.hasOwnProperty(b)) continue;
@@ -719,8 +753,16 @@ var app = new function() {
                     ); // @improve
                     if (visualNodeProps.baseAngle !== undefined) {
                         angle = Geometry.normalizeAngle(visualNodeProps.baseAngle + Math.PI/2 + Math.PI*i/(mi - 1));
+                        dAngle = Math.PI/mi;
                     } else {
                         angle = 2*Math.PI*i/mi;
+                        dAngle = 2*Math.PI/mi;
+                    }
+                    if (!beams[b].beam.getInitialRadius()) {
+                        beams[b].beam.setRadius(Math.max(
+                            beams[b].beam.getNode().getR()/Math.tan(dAngle/2),
+                            beams[b].beam.getNode().getR() + node.getR() + MIN_NODES_DISTANCE
+                        ));
                     }
                     beams[b].beam.setAngle(angle);
                     i++;
@@ -746,15 +788,21 @@ var app = new function() {
                     beams[b].beam.highlight(
                         (SELECTED_INDEX === beams[b].index)?getAppropriateStateActionClassname():CSS_EMPTY_CLASSNAME
                     ); // @improve
+                    if (!beams[b].beam.getInitialRadius()) {
+                        beams[b].beam.setRadius(Math.max(
+                            beams[b].beam.getNode().getR()/Math.tan(Math.PI*2/MAX_VISUAL_ELEMENTS),
+                            beams[b].beam.getNode().getR() + node.getR() + MIN_NODES_DISTANCE
+                        ));
+                    }
                     beams[b].beam.setZIndex(-Math.round(d*d) + 200);
-                    beams[b].beam.setAngle(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2 + (visualNodeProps.baseAngle || Math.PI) + Math.PI);
+                    beams[b].beam.setAngle(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2 + visualNodeProps.baseAngle + Math.PI);
                 }
 
             };
 
             __this.init = function() {
 
-                requestBaseData(INITIAL_ELEMENT_NUMBER, 0);
+                updateFromModel();
                 alignSubNodes();
 
             };
@@ -832,6 +880,12 @@ var app = new function() {
 
         };
 
+        this.updateValue = function() {
+
+            _this.setValue(DATA_ADAPTER.getValue(_this.getPath()));
+
+        };
+
         /**
          * Make node glow (highlight node).
          *
@@ -857,11 +911,11 @@ var app = new function() {
 
             joinParent(PARENT_NODE);
 
-            value = DATA_ADAPTER.getValue(_this.getPath());
-
             element = createNodeElement();
             _this.setPosition(startX, startY);
-            _this.setRadius(startR);
+            _this.setRadius(300);
+
+            _this.updateValue();
             updateView();
 
         };
@@ -887,6 +941,7 @@ var app = new function() {
                 r: initialRadius || 100,
                 relativeX: manipulator.getRelativeCenter().x,
                 relativeY: manipulator.getRelativeCenter().y,
+                initialRadius: initialRadius,
                 WIDTH_EXPAND: 2,
                 HALF_HEIGHT: 3 // @override
             },
@@ -922,6 +977,8 @@ var app = new function() {
         };
 
         this.setRadius = function(radius) {
+
+            if (!visualBeamProps.initialRadius) visualBeamProps.initialRadius = radius;
 
             visualBeamProps.r = radius;
             updateView();
@@ -971,6 +1028,7 @@ var app = new function() {
         this.getParentNode = function() { return parentNode; };
         this.getAngle = function() { return visualBeamProps.angle; };
         this.getRadius = function() { return visualBeamProps.r; };
+        this.getInitialRadius = function() { return visualBeamProps.initialRadius; };
 
         var updateElementPosition = function() {
 
@@ -1059,13 +1117,40 @@ var app = new function() {
 
         };
 
+        var getNodeByPath = function(path) {
+
+            var node = rootNode;
+
+            for (var i = 0; i < path.length; i++) {
+                if (!node) break;
+                node = node.getChildNode(path[i]);
+            }
+
+            return node || null;
+
+        };
+
+        this.getNodeByPath = getNodeByPath;
+
         /**
          * @override
          * @param path
          */
-        dataAdapter.updated = function(path) {
+        dataAdapter.childUpdated = function(path) {
 
-            if (triggeringNode) triggeringNode.handle.updateChild(); // todo: for other nodes
+            var node = getNodeByPath(path);
+            if (node) triggeringNode.handle.updateChild();
+
+        };
+
+        /**
+         * @override
+         * @param path
+         */
+        dataAdapter.nodeValueUpdated = function(path) {
+
+            var node = getNodeByPath(path);
+            if (node) node.updateValue();
 
         };
 
@@ -1175,6 +1260,12 @@ var app = new function() {
         DATA_ADAPTER.reset();
 
         TREE_ROOT = new TreeRoot();
+
+    };
+
+    this.test = function(path) {
+
+        return TREE_ROOT.getNodeByPath(path);
 
     };
 

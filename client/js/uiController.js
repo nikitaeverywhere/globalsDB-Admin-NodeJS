@@ -2,6 +2,7 @@ var uiController = new function() {
 
     var _this = this,
         UI_ELEMENT = null,
+        UI_SHOWN = false,
         ELEMENTS = {
             infoBar: null,
             connect: null,
@@ -50,6 +51,7 @@ var uiController = new function() {
 
     this.showUI = function() {
 
+        UI_SHOWN = true;
         app.switchControl(false);
         UI_ELEMENT.style.left = 0;
 
@@ -57,6 +59,7 @@ var uiController = new function() {
 
     this.hideUI = function() {
 
+        UI_SHOWN = false;
         app.switchControl(true);
         UI_ELEMENT.style.left = "100%";
 
@@ -113,6 +116,8 @@ var uiController = new function() {
 
         connect: function() {
 
+            if (!UI_SHOWN) return;
+
             var data = {
                 host: FIELDS.connectHostname.value,
                 port: FIELDS.connectPort.value,
@@ -156,6 +161,8 @@ var uiController = new function() {
         },
 
         login: function() {
+
+            if (!UI_SHOWN) return;
 
             var data = {
                 username: FIELDS.loginUsername.value,

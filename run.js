@@ -30,6 +30,10 @@ try {
 
 //process.on('uncaughtException', server.handleError);
 
-server.init();
+if (server.init()) {
+
+} else {
+    console.error("Unable to initialize server - globals DB not up") ;
+}
 
 console.log("Everything ready!");

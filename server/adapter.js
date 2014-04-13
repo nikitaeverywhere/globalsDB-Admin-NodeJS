@@ -112,7 +112,7 @@ module.exports = function() {
                 if (object.__id) data.__id = object.__id;
                 handler(data);
             });
-        } else handler({ error: "Request not recognised." });
+        } else handler({ error: "Request not recognised.", request: object });
 
     };
 
