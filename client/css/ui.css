@@ -9,11 +9,11 @@
 }
 
 #ui, #ui-message, #ui > div {
-    -webkit-transition: all .3s ease;      /*.3*/
-    -moz-transition: all .3s ease;
-    -ms-transition: all .3s ease;
-    -o-transition: all .3s ease;
-    transition: all .3s ease;
+    -webkit-transition: all .3s ease-in;
+    -moz-transition: all .3s ease-in;
+    -ms-transition: all .3s ease-in;
+    -o-transition: all .3s ease-in;
+    transition: all .3s ease-in;
 }
 
 .centralizer {
@@ -55,14 +55,14 @@ select:after {
     content: "test";
 }
 
-form input[type=submit] {
+form input[type=submit], form input[type=button] {
     text-decoration: none;
     padding: 4px;
     font-weight: 900;
     cursor: pointer;
 }
 
-form input[type=submit]:hover {
+form input[type=submit]:hover, form input[type=button]:hover {
     box-shadow: 0 0 5px 3px rgb(114, 255, 179);
 }
 

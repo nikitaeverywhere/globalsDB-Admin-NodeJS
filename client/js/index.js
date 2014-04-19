@@ -35,20 +35,25 @@ var app = new function() {
         TREE_ROOT = null,
         manipulator,
 
+        // enables handling action by application
         ACTION_HANDLERS_ON = true,
 
-        CSS_CLASSNAME_NODE = "node",
-        CSS_CLASSNAME_LINK = "link",
+        // confirm deleting nodes
+        NODE_DELETION_CONFIRM = true,
 
-        CSS_CLASSNAME_SELECT = "selected",
-        CSS_CLASSNAME_DELETE = "deleting",
-        CSS_CLASSNAME_EDIT = "editing",
-        CSS_EMPTY_CLASSNAME = "",
+        CSS_CLASS_NAME_NODE = "node",
+        CSS_CLASS_NAME_LINK = "link",
+
+        CSS_CLASS_NAME_SELECT = "selected",
+        CSS_CLASS_NAME_DELETE = "deleting",
+        CSS_CLASS_NAME_EDIT = "editing",
+        CSS_EMPTY_CLASS_NAME = "",
 
         NODE_STATE_ACTION_SELECT = 0,
         NODE_STATE_ACTION_EDIT = 1,
         NODE_STATE_ACTION_DELETE = 2,
         NODE_STATE_ACTIONS = 3,
+        NODE_MAX_VISUAL_ELEMENTS = 15,
 
         MIN_NODES_DISTANCE = 110, // minimal distance between nodes
         BASE_NODE_RADIUS = 140,
@@ -78,9 +83,9 @@ var app = new function() {
 
         document.body.insertBefore(el, null);
 
-        for(var t in transforms){
+        for (var t in transforms) {
             if (!transforms.hasOwnProperty(t)) continue;
-            if( el.style[t] !== undefined ){
+            if (el.style[t] !== undefined) {
                 el.style[t] = 'translate3d(1px,1px,1px)';
                 has3d = window.getComputedStyle(el, null).getPropertyValue(transforms[t]);
             }
@@ -490,7 +495,7 @@ var app = new function() {
                     // index: { index: Number, beam: Beam }
                 },
                 ADDITIONAL_CHILD = 0,
-                MAX_VISUAL_ELEMENTS = 15,
+                MAX_VISUAL_ELEMENTS = NODE_MAX_VISUAL_ELEMENTS,
                 INITIAL_ELEMENT_NUMBER = 30,
                 SELECTED_INDEX = 0,
                 VISUAL_SELECTED_INDEX = 0, // for animation
@@ -549,11 +554,24 @@ var app = new function() {
             };
 
             /**
+             * Returns currently selected node.
+             *
+             * @returns {Node | null}
+             */
+            this.getCurrentNode = function() {
+
+                return __this.getChildNodeByIndex(child[SELECTED_INDEX]);
+
+            };
+
+            /**
              * Enters to selected node.
              */
             this.triggerEvent = function() { // @update SELECTED_INDEX => argument
 
                 if (!beams[SELECTED_INDEX]) return;
+
+                __this.forceViewUpdate();
 
                 switch (currentStateAction) {
                     case NODE_STATE_ACTION_SELECT: {
@@ -569,9 +587,18 @@ var app = new function() {
 
             };
 
-            var handleTrigger = function(trigger) {
+            /**
+             * Handles trigger of selected node.
+             *
+             * @param trigger
+             */
+            var handleSelectedNodeTrigger = function(trigger) {
 
-                console.log("Trigger handled");
+                switch (trigger) {
+                    case TRIGGER_ADD: TREE_ROOT.handler.addNode(); break;
+                    case TRIGGER_JUMP: /* todo */ break;
+                    default: console.log("Unrecognised trigger");
+                }
 
             };
 
@@ -582,7 +609,7 @@ var app = new function() {
                     nodeIndex = node.getIndex();
 
                 if (typeof nodeIndex === "object" && typeof nodeIndex.trigger !== "undefined") {
-                    handleTrigger(nodeIndex.trigger);
+                    handleSelectedNodeTrigger(nodeIndex.trigger);
                     return;
                 }
 
@@ -594,13 +621,25 @@ var app = new function() {
 
             this.handleEdit = function() {
 
-                alert("Edit");
+                var node = __this.getCurrentNode();
+                if (!node) return;
+
+                TREE_ROOT.handler.editNode(node.getPath());
 
             };
 
             this.handleDelete = function() {
 
-                alert("Delete?");
+                var node = __this.getCurrentNode();
+                if (!node) return;
+
+                if (NODE_DELETION_CONFIRM) {
+                    if (confirm("Are you sure to delete " + node.getIndex() + "?")) {
+                        TREE_ROOT.handler.deleteNode(node.getPath());
+                    }
+                } else {
+                    TREE_ROOT.handler.deleteNode(node.getPath());
+                }
 
             };
 
@@ -627,7 +666,27 @@ var app = new function() {
                     updateFromModel();
                 }
 
-                if (last !== SELECTED_INDEX) alignSubNodes();
+                if (last !== SELECTED_INDEX) {
+                    if (NODES_FREE_ALIGN) {
+                        __this.updateView();
+                    } else {
+                        alignSubNodes();
+                    }
+                }
+
+            };
+
+            this.targetSelectionToSubPath = function(subPathName) {
+
+                for (var b in beams) {
+                    if (!beams.hasOwnProperty(b)) continue;
+                    if (beams[b].beam.getSubPath() === subPathName) {
+                        __this.updateSelectedIndex(beams[b].index - SELECTED_INDEX);
+                        return beams[b].index;
+                    }
+                }
+
+                return 0;
 
             };
 
@@ -654,6 +713,8 @@ var app = new function() {
                     alignSubNodes();
                 }
 
+                __this.updateSelectedIndex(0);
+
             };
 
             /**
@@ -661,14 +722,35 @@ var app = new function() {
              */
             var updateFromModel = function() {
 
-                var fromIndex = Math.max(child.length - 1, 0),
+                /*var fromIndex = Math.max(child.length - 1, 0),
                     level = DATA_ADAPTER.getLevel(node.getPath(), INITIAL_ELEMENT_NUMBER, child[fromIndex]);
 
                 for (var i = 0; i < level.length; i++) {
                     child[fromIndex + i] = level[i];
                 }
 
-                if (level.length + fromIndex - 1 > MAX_VISUAL_ELEMENTS) {
+                if (level.length + fromIndex - 1 > MAX_VISUAL_ELEMENTS/(PARENT_NODE?2:1)) {
+                    NODES_FREE_ALIGN = false;
+                }
+
+                resetExtraChild();*/
+
+                var fromIndex = SELECTED_INDEX - Math.ceil(MAX_VISUAL_ELEMENTS/2),
+                    level = DATA_ADAPTER.getLevel(
+                        node.getPath(),
+                        INITIAL_ELEMENT_NUMBER,
+                        (fromIndex <= 0)?"":child[fromIndex]
+                    );
+
+                if (fromIndex < 0) fromIndex = 0;
+
+                for (var i = 0; i < level.length; i++) {
+                    child[fromIndex + i] = level[i];
+                }
+
+                child.splice(fromIndex + i, child.length - fromIndex - i);
+
+                if (level.length + fromIndex - 1 > MAX_VISUAL_ELEMENTS/(PARENT_NODE?2:1)) {
                     NODES_FREE_ALIGN = false;
                 }
 
@@ -693,21 +775,50 @@ var app = new function() {
 
                 if (NODES_FREE_ALIGN) {
 
-                    // this weird code does the next: removes beams for ADDITIONAL_CHILD from the end & pushes loaded
-                    // elements. E.g. replaces [x, x, x, ADDITIONAL, ADDITIONAL, ...] to [x, x, x, newX, newX]
-                    // useful when dataAdapter updates.
-                    for (var u = Math.max(getBeamsNumber() - ADDITIONAL_CHILD, 0); u < child.length + ADDITIONAL_CHILD; u++) {
-                        if (beams[u]) beams[u].beam.remove();
+                    var cleanBeams = function() {
+                        for (var b in beams) {
+                            if (!beams.hasOwnProperty(b)) continue;
+                            beams[b].beam.setRadius(beams[b].beam.getInitialRadius());
+                            var n = beams[b].beam.getNode();
+                            if (n) {
+                                n.childController.removeBeams();
+                            }
+                        }
+                    };
+
+                    var clean;
+
+                    for (var b in beams) {
+                        if (!beams.hasOwnProperty(b)
+                            || beams[b].beam.getSubPath() == child[beams[b].index]) continue;
+                        beams[b].beam.remove();
+                        clean = true;
+                        delete beams[b];
+                    }
+
+                    for (var u = 0;
+                         u < child.length + ADDITIONAL_CHILD;
+                         u++) {
+                        if (beams[u]) continue;
+                        clean = true;
                         beams[u] = {
                             index: u,
                             beam: new Beam(node, (u<child.length)?child[u]:child[child.length-u-1], 0, 0)
                         };
                     }
 
+                    if (clean) cleanBeams();
+
                 } else {
 
-                    var fromIndex = Math.max(Math.ceil(SELECTED_INDEX - MAX_VISUAL_ELEMENTS/2), -ADDITIONAL_CHILD),
-                        toIndex = Math.min(Math.floor(SELECTED_INDEX + MAX_VISUAL_ELEMENTS/2), child.length),
+                    var fromIndex = Math.max(
+                            Math.ceil(SELECTED_INDEX - MAX_VISUAL_ELEMENTS/2),
+                            -ADDITIONAL_CHILD
+                        ),
+                        toIndex = Math.min(
+                            Math.floor(SELECTED_INDEX + MAX_VISUAL_ELEMENTS/2),
+                            child.length
+                        ),
                         deprecatedBeams = [ /* { index, beam } */ ],
                         i, tempBeam;
 
@@ -725,6 +836,11 @@ var app = new function() {
                             if (typeof beams[i].beam.getSubPath() === "object") { // override trigger
                                 beams[i].beam.remove();
                             } else {
+                                // if model updated
+                                if (beams[i].beam.getSubPath() !== child[beams[i].index]
+                                    && child[beams[i].index]) {
+                                    beams[i].beam.setSubPathName(child[beams[i].index]);
+                                }
                                 continue; // skip iteration (else-branch)
                             }
                         }
@@ -784,10 +900,10 @@ var app = new function() {
             var getAppropriateStateActionClassname = function() {
 
                 switch (currentStateAction) {
-                    case NODE_STATE_ACTION_SELECT: return CSS_CLASSNAME_SELECT; break;
-                    case NODE_STATE_ACTION_EDIT: return CSS_CLASSNAME_EDIT; break;
-                    case NODE_STATE_ACTION_DELETE: return CSS_CLASSNAME_DELETE; break;
-                    default: return CSS_EMPTY_CLASSNAME;
+                    case NODE_STATE_ACTION_SELECT: return CSS_CLASS_NAME_SELECT; break;
+                    case NODE_STATE_ACTION_EDIT: return CSS_CLASS_NAME_EDIT; break;
+                    case NODE_STATE_ACTION_DELETE: return CSS_CLASS_NAME_DELETE; break;
+                    default: return CSS_EMPTY_CLASS_NAME;
                 }
 
             };
@@ -795,7 +911,7 @@ var app = new function() {
             var viewFreeUpdater = function() {
 
                 var i = 0,
-                    mi = child.length + ADDITIONAL_CHILD,//mi = (child.length + ADDITIONAL_CHILD < 1)?1:(child.length + ADDITIONAL_CHILD),
+                    mi = child.length + ADDITIONAL_CHILD,
                     angle, dAngle, aAngle, bAngle,
                     baseAngleDefined = (visualNodeProps.baseAngle !== undefined)?1:0;
 
@@ -803,7 +919,8 @@ var app = new function() {
                 for (var b in beams) {
                     if (!beams.hasOwnProperty(b)) continue;
                     beams[b].beam.highlight(
-                        (SELECTED_INDEX === beams[b].index)?getAppropriateStateActionClassname():CSS_EMPTY_CLASSNAME
+                        (SELECTED_INDEX === beams[b].index)?
+                            getAppropriateStateActionClassname():CSS_EMPTY_CLASS_NAME
                     ); // @improve
                     if (baseAngleDefined) {
                         bAngle = 0;
@@ -817,8 +934,8 @@ var app = new function() {
                     }
 
                     angle = Geometry.normalizeAngle(
-                        (visualNodeProps.baseAngle || 0) + Math.PI - ((mi > 1)?aAngle/2:0) + (i/(mi - 1 || 1))*aAngle
-                        - bAngle
+                        (visualNodeProps.baseAngle || 0) + Math.PI
+                            - ((mi > 1)?aAngle/2:0) + (i/(mi - 1 || 1))*aAngle - bAngle
                     ) || 0;
                     /*if (visualNodeProps.baseAngle !== undefined) {
                         angle = Geometry.normalizeAngle(visualNodeProps.baseAngle + Math.PI/2 + Math.PI*i/(mi - 1));
@@ -828,10 +945,14 @@ var app = new function() {
                         dAngle = 2*Math.PI/mi;
                     }*/
                     if (!beams[b].beam.getInitialRadius()) {
-                        beams[b].beam.setRadius(Math.max(
+                        var r = Math.max(
                             beams[b].beam.getNode().getR()/Math.tan(dAngle/2),
                             beams[b].beam.getNode().getR() + node.getR() + MIN_NODES_DISTANCE
-                        ));
+                        );
+                        if (r === Infinity) {
+                            r = beams[b].beam.getNode().getR() + node.getR() + MIN_NODES_DISTANCE;
+                        }
+                        beams[b].beam.setRadius(r);
                     }
                     beams[b].beam.setAngle(angle);
                     i++;
@@ -839,11 +960,13 @@ var app = new function() {
 
             };
 
-            var viewScrollUpdater = function() { // work with indexes: display child array
+            var viewScrollUpdater = function(k) { // work with indexes: display child array
 
                 var delta, d;
 
-                VISUAL_SELECTED_INDEX += delta = (SELECTED_INDEX - VISUAL_SELECTED_INDEX)/2.5;
+                if (!k) k = 2.5;
+
+                VISUAL_SELECTED_INDEX += delta = (SELECTED_INDEX - VISUAL_SELECTED_INDEX)/k;
 
                 if (Math.abs(delta) < 0.001) {
                     VISUAL_SELECTED_INDEX = SELECTED_INDEX;
@@ -855,16 +978,18 @@ var app = new function() {
                     if (!beams.hasOwnProperty(b)) continue;
                     d = beams[b].index - VISUAL_SELECTED_INDEX;
                     beams[b].beam.highlight(
-                        (SELECTED_INDEX === beams[b].index)?getAppropriateStateActionClassname():CSS_EMPTY_CLASSNAME
+                        (SELECTED_INDEX === beams[b].index)?
+                            getAppropriateStateActionClassname():CSS_EMPTY_CLASS_NAME
                     ); // @improve
-                    if (!beams[b].beam.getInitialRadius()) {
+                    //if (!beams[b].beam.getInitialRadius()) {
                         beams[b].beam.setRadius(Math.max(
                             beams[b].beam.getNode().getR()/Math.tan(Math.PI*2/MAX_VISUAL_ELEMENTS),
                             beams[b].beam.getNode().getR() + node.getR() + MIN_NODES_DISTANCE
                         ));
-                    }
+                    //}
                     beams[b].beam.setZIndex(-Math.round(d*d) + 200);
-                    beams[b].beam.setAngle(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2 + visualNodeProps.baseAngle + Math.PI);
+                    beams[b].beam.setAngle(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2
+                        + (visualNodeProps.baseAngle || Math.PI) + Math.PI);
                 }
 
             };
@@ -875,6 +1000,20 @@ var app = new function() {
                 alignSubNodes();
 
             };
+
+        };
+
+        /**
+         * Handle clicking on node.
+         */
+        var handleClick = function() {
+
+            var node = _this.getParent();
+
+            if (node) {
+                node.childController.targetSelectionToSubPath(_this.getIndex());
+                node.childController.triggerEvent();
+            }
 
         };
 
@@ -892,8 +1031,9 @@ var app = new function() {
         var createNodeElement = function() {
 
             var el = document.createElement("DIV");
-            el.className = CSS_CLASSNAME_NODE;
+            el.className = CSS_CLASS_NAME_NODE;
             el.innerHTML = "<div><span>" + value + "</span></div>";
+            el.onclick = handleClick;
             DOM_ELEMENTS.FIELD.appendChild(el);
             return el;
 
@@ -966,7 +1106,7 @@ var app = new function() {
          */
         this.highlight = function(CSSClassName) {
 
-            element.className = CSS_CLASSNAME_NODE + " " + CSSClassName;
+            element.className = CSS_CLASS_NAME_NODE + " " + CSSClassName;
 
         };
 
@@ -1002,8 +1142,8 @@ var app = new function() {
      *
      * @param parentNode
      * @param subPath
-     * [ @param initialAngle ]
-     * [ @param initialRadius ]
+     * @param {number=} initialAngle
+     * @param {number=} initialRadius
      *
      * @constructor
      */
@@ -1018,6 +1158,7 @@ var app = new function() {
                 WIDTH_EXPAND: 2,
                 HALF_HEIGHT: 3 // @override
             },
+            _this = this,
             node = new Node(
                 parentNode,
                 subPath,
@@ -1027,13 +1168,23 @@ var app = new function() {
             ),
             element = null;
 
+        var handleClick = function() {
+
+            if (parentNode) {
+                parentNode.childController.targetSelectionToSubPath(_this.getSubPath());
+                parentNode.changeStateAction(1);
+            }
+
+        };
+
         var createBeamElement = function() {
 
             var el = document.createElement("DIV");
-            el.className = CSS_CLASSNAME_LINK;
+            el.className = CSS_CLASS_NAME_LINK;
             el.innerHTML = "<div><div><div><span>" +
                 ((typeof subPath !== "object")?subPath:subPath.name)
                 + "</span></div></div></div>"; // @structured
+            el.onclick = handleClick;
             DOM_ELEMENTS.FIELD.appendChild(el);
 
             visualBeamProps.HALF_HEIGHT = parseFloat(el.clientHeight)/2 || 3;
@@ -1093,7 +1244,7 @@ var app = new function() {
          */
         this.highlight = function(CSSClassName) {
 
-            element.className = CSS_CLASSNAME_LINK + " " + CSSClassName;
+            element.className = CSS_CLASS_NAME_LINK + " " + CSSClassName;
             if (node) node.highlight(CSSClassName);
 
         };
@@ -1214,7 +1365,7 @@ var app = new function() {
         dataAdapter.childUpdated = function(path) {
 
             var node = getNodeByPath(path);
-            if (node) triggeringNode.handle.updateChild();
+            if (node) node.handle.updateChild();
 
         };
 
@@ -1252,12 +1403,41 @@ var app = new function() {
 
         };
 
+        this.getCurrentPath = function() {
+
+            if (!triggeringNode) return [];
+            return triggeringNode.getPath();
+
+        };
+
         this.setTriggeringNode = function(node) {
 
             if (!(node instanceof Node)) return;
             triggeringNode = node;
 
             manipulator.setViewCenter(node.getX(), node.getY());
+
+        };
+
+        this.handler = {
+
+            addNode: function() {
+
+                uiController.switchAddNodeForm();
+
+            },
+
+            editNode: function(path) {
+
+                uiController.switchEditNodeForm(path[path.length - 1], dataAdapter.getValue(path));
+
+            },
+
+            deleteNode: function(path) {
+
+                dataAdapter.deleteNode(path);
+
+            }
 
         };
 
@@ -1312,6 +1492,57 @@ var app = new function() {
 
 
 
+        },
+
+        /**
+         * Add node to current path.
+         *
+         * @param name
+         * @param value
+         */
+        addNode: function(name, value) {
+
+            if (!TREE_ROOT) return;
+            var path = TREE_ROOT.getCurrentPath();
+            if (!path.length) return;
+            dataAdapter.setNode(path, name, value, function(success) {
+                if (!success) {
+                    uiController.showMessage("Failed to set node",
+                        "Unable to set node [" + name + "] with value [" + value + "]");
+                }
+            });
+
+        },
+
+        /**
+         * Edit node within current path and selected node.
+         *
+         * @param name
+         * @param value
+         */
+        editNode: function(name, value) {
+
+            if (!TREE_ROOT) return;
+            var path = TREE_ROOT.getCurrentPath();
+            console.log(path);
+            if (!path.length) return;
+            var node = TREE_ROOT.getNodeByPath(path.slice(1));
+            console.log(node);
+            if (!node) return;
+            node = node.childController.getCurrentNode();
+            console.log(node);
+            if (!node) return;
+            console.log(node.getIndex(), name);
+            if (node.getIndex() !== name) return;
+            console.log("OK");
+
+            dataAdapter.setNode(path, name, value, function(success) {
+                if (!success) {
+                    uiController.showMessage("Failed to set node",
+                            "Unable to set node [" + name + "] with value [" + value + "]");
+                }
+            });
+
         }
 
     };
@@ -1319,9 +1550,10 @@ var app = new function() {
     /**
      * Resets tree root for new or existing adapter. Adapter will be reset too.
      *
-     * [ @param adapter ]
+     * @param adapter {object=}
+     * @param baseName {string=}
      */
-    this.resetTreeRoot = function(adapter) {
+    this.resetTreeRoot = function(adapter, baseName) {
 
         if (TREE_ROOT) {
             TREE_ROOT.remove();
@@ -1332,7 +1564,7 @@ var app = new function() {
             DATA_ADAPTER = adapter;
         }
 
-        DATA_ADAPTER.reset();
+        DATA_ADAPTER.reset(baseName);
 
         TREE_ROOT = new TreeRoot();
 

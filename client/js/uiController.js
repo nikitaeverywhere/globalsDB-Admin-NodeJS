@@ -8,8 +8,10 @@ var uiController = new function() {
             connect: null,
             login: null,
             message: null,
+            addNode: null,
             messageHead: null,
-            messageBody: null
+            messageBody: null,
+            editNode: null
         },
         FIELDS = { // @autofill
             connectHostname: null,
@@ -20,7 +22,11 @@ var uiController = new function() {
             loginPassword: null,
             loginNamespace: null,
             loginDatabase: null,
-            loginButton: null
+            loginButton: null,
+            addNodeName: null,
+            addNodeValue: null,
+            editNodeName: null,
+            editNodeValue: null
         };
 
     var hideAll = function() {
@@ -61,6 +67,7 @@ var uiController = new function() {
 
         UI_SHOWN = false;
         app.switchControl(true);
+        if (document.activeElement) document.activeElement.blur();
         UI_ELEMENT.style.left = "100%";
 
     };
@@ -76,6 +83,22 @@ var uiController = new function() {
 
         _this.showUI();
         targetElement(ELEMENTS.login);
+
+    };
+
+    this.switchAddNodeForm = function() {
+
+        _this.showUI();
+        targetElement(ELEMENTS.addNode);
+
+    };
+
+    this.switchEditNodeForm = function(nodeName, nodeValue) {
+
+        FIELDS.editNodeName.value = nodeName;
+        FIELDS.editNodeValue.value = nodeValue;
+        _this.showUI();
+        targetElement(ELEMENTS.editNode);
 
     };
 
@@ -180,7 +203,7 @@ var uiController = new function() {
                 if (responce && responce.error === 0) {
 
                     _this.hideUI();
-                    app.resetTreeRoot();
+                    app.resetTreeRoot(null, data.username);
 
                 } else {
                     _this.showMessage("Login error", "Unable to login. Server reason: " + (responce.reason || "[none]"));
@@ -195,6 +218,38 @@ var uiController = new function() {
 
             ELEMENTS.message.style.left = "-100%";
 
+        },
+
+        addNode: function() {
+
+            var name = FIELDS.addNodeName.value,
+                value = FIELDS.addNodeValue.value;
+
+            _this.hideUI();
+
+            if (!name) {
+                _this.showMessage("Unable to create node", "\"name\" field is empty.");
+                return;
+            }
+
+            app.handle.addNode(name, value);
+
+        },
+
+        editNode: function() {
+
+            var name = FIELDS.editNodeName.value,
+                value = FIELDS.editNodeValue.value;
+
+            _this.hideUI();
+
+            if (!name) {
+                _this.showMessage("Unable to edit node", "\"name\" field is empty.");
+                return;
+            }
+
+            app.handle.editNode(name, value);
+
         }
 
     };
@@ -207,6 +262,14 @@ var uiController = new function() {
 
     };
 
+    var onElementFocused = function(e) {
+
+        if (e && e.target) {
+            document.activeElement = (e.target == document) ? null : e.target;
+        }
+
+    };
+
     this.init = function() {
 
         UI_ELEMENT = document.getElementById("ui");
@@ -216,12 +279,18 @@ var uiController = new function() {
         ELEMENTS.message = document.getElementById("ui-message");
         ELEMENTS.messageHead = document.getElementById("ui-message-head");
         ELEMENTS.messageBody = document.getElementById("ui-message-body");
+        ELEMENTS.addNode = document.getElementById("ui-addNode");
+        ELEMENTS.editNode = document.getElementById("ui-editNode");
 
         for (var i in FIELDS) {
             if (!FIELDS.hasOwnProperty(i)) continue;
             if ((FIELDS[i] = document.getElementById(i)) === undefined) {
                 console.error("Listed element with ID=" + i + " is not present in DOM.")
             }
+        }
+
+        if (document.addEventListener) {
+            document.addEventListener("focus", onElementFocused, true);
         }
 
         initElements();

@@ -3,8 +3,11 @@ var server = new function() {
     var ws,
         CONNECTED = false,
         connectionHandler,
-        LOG_DATA = false,
+        LOG_DATA = true,
+        REQUESTS_LIMIT = 2, // @todo
         handlers = {};
+
+    var requestStack = []; // stack with requesting objects
 
     var generateHandlerID = function() {
 

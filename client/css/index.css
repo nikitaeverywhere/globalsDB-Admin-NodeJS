@@ -85,6 +85,7 @@ html, body {
     background: rgb(50, 56, 60);
     box-shadow: 0 0 3px 2px rgb(115, 233, 255);
     z-index: 10;
+    cursor: pointer;
 
     transform-origin: 0 0;
     -o-transform-origin: 0 0;

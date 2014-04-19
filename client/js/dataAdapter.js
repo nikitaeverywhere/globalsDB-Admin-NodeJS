@@ -120,36 +120,49 @@ var dataAdapter = new function() {
 
     };
 
+    var updateTreeSubLevel = function(path, subLevelName) {
+
+        var treeObject = getTreeObjectByPath(path);
+
+        if (!treeObject || !path || !subLevelName) {
+            console.error("Wrong server data flow.");
+            return;
+        }
+
+        if (!treeObject.hasOwnProperty(subLevelName)) {
+            treeObject[subLevelName] = {};
+        } else {
+            // nothing to do
+        }
+
+    };
+
+    var deleteTreeNode = function(path) {
+
+        var treeObject = getTreeObjectByPath(path.slice(0, path.length - 1)),
+            prop = path.pop();
+
+        if (treeObject.hasOwnProperty(prop)) {
+            delete treeObject[prop];
+        } else {
+            console.log("Unable to delete from tree ", path);
+        }
+
+    };
+
+    var updateTreeValue = function(path, value) {
+
+        var treeObject = getTreeObjectByPath(path);
+
+        if (typeof treeObject === "object") {
+            treeObject[VALUE_PREFIX] = value;
+        } else {
+            console.error("Make sure you're on a right way.");
+        }
+
+    };
+
     var serverAdapter = new function() {
-
-        var updateTreeSubLevel = function(path, subLevelName) {
-
-            var treeObject = getTreeObjectByPath(path);
-
-            if (!treeObject || !path || !subLevelName) {
-                console.error("Wrong server data flow.");
-                return;
-            }
-
-            if (!treeObject.hasOwnProperty(subLevelName)) {
-                treeObject[subLevelName] = {};
-            } else {
-                // nothing to do
-            }
-
-        };
-
-        var updateTreeValue = function(path, value) {
-
-            var treeObject = getTreeObjectByPath(path);
-
-            if (typeof treeObject === "object") {
-                treeObject[VALUE_PREFIX] = value;
-            } else {
-                console.error("Make sure you're on a right way.");
-            }
-
-        };
 
         /**
          * Returns if data loading from server is complete.
@@ -174,7 +187,7 @@ var dataAdapter = new function() {
 
         this.requestNodeValue = function(path) {
 
-            console.log("REQUESTING SERVER NODE VALUE", path);
+            //console.log("REQUESTING SERVER NODE VALUE", path);
 
             var realPath = path.slice(1);
 
@@ -188,7 +201,10 @@ var dataAdapter = new function() {
             }, function(data) {
 
                 if (!data || data.error || !data.result) {
-                    console.error("Sever data error: ", data);
+                    console.error("Sever data error: ", {
+                        request: req,
+                        data: data
+                    });
                     return;
                 }
 
@@ -205,7 +221,7 @@ var dataAdapter = new function() {
             // path = ["root", ..., ...]
             // from = "Name" || ""
 
-            console.log("REQUESTING SERVER LEVEL DATA FROM " + from, path);
+            //console.log("REQUESTING SERVER LEVEL DATA FROM " + from, path);
 
             if (completedLevel(path)) return;
 
@@ -251,7 +267,7 @@ var dataAdapter = new function() {
      * This function is bind to application. Each call forces app to request data again for required nodes.
      * Also use this function for asynchronous data tree update: call it after update with appropriate path argument.
      *
-     * @param path {Array} Where update happened. Array of type ["root", "loot", ...].
+     * @param path {Array} Where update happened. Array without "root".
      * @overrides
      */
     this.childUpdated = function(path) {};
@@ -295,7 +311,7 @@ var dataAdapter = new function() {
     };
 
     /**
-     * Must return current node value as a string.
+     * Must return current node value as a string. Including [ "root", ... ]
      *
      * @param path {Array} For example, [1, "obj", 15] represents call to OBJECT[1]["obj"][15] value.
      * @returns {*}
@@ -319,47 +335,68 @@ var dataAdapter = new function() {
     };
 
     /**
+     * Creates new node within given path. Path = [ "root", ... ]
      *
+     * @param pathArray
+     * @param nodeName
+     * @param nodeValue "" if empty node
+     * @param {function=} handler
      */
-    this.set = function() {
+    this.setNode = function(pathArray, nodeName, nodeValue, handler) {
+
+        var newPath = pathArray.concat(nodeName),
+            realNewPath = newPath.slice(1);
+
+        server.send({
+            request: "setNode",
+            data: {
+                pathArray: realNewPath,
+                data: nodeValue
+            }
+        }, function(response) {
+
+            if (response && !response.error) {
+
+                updateTreeSubLevel(pathArray, nodeName);
+                updateTreeValue(newPath, nodeValue);
+                _this.childUpdated(pathArray.slice(1));
+                _this.nodeValueUpdated(realNewPath);
+                if (typeof handler === "function") handler(true);
+
+            } else {
+                console.log("Wrong response", response);
+                if (typeof handler === "function") handler(false);
+            }
+
+        });
 
     };
 
     /**
-     * Set the value in tree.
+     * Deletes node and it's child within given path.
      *
-     * @param path
-     * @param value
-     * @returns {boolean}
+     * @param {Array} pathArray - path to node to delete.
+     * @param {function=} handler
      */
-    this.setTestValue = function(path, value) {
+    this.deleteNode = function(pathArray, handler) {
 
-//        if (!(path instanceof Array)) return false;
-//
-//        var obj = dataTree,
-//            i = 0;
-//
-//        while (path[i] && typeof obj === "object") {
-//            if (typeof obj[path[i]] === "undefined") {
-//                obj[path[i]] = {};
-//            }
-//            obj = obj[path[i]];
-//            i++;
-//        }
-//
-//        console.log(obj, dataTree);
+        server.send({
+            request: "killNode",
+            data: {
+                pathArray: pathArray.slice(1)
+            }
+        }, function(responce) {
 
-        dataTree.root["test"] = {
-            s1: "helllo!",
-            100: "Man"
-        };
+            if (responce && !responce.error) {
+                deleteTreeNode(pathArray);
+                _this.childUpdated(pathArray.slice(1)); // don't ask me why
+                if (typeof handler === "function") handler(true);
+            } else {
+                console.log("Wrong kill request.", responce);
+                if (typeof handler === "function") handler(false);
+            }
 
-        dataTree.root["mest"] = {
-            s1: "helllo!",
-            100: "Man"
-        };
-
-        return true;
+        });
 
     };
 
@@ -372,10 +409,10 @@ var dataAdapter = new function() {
     /**
      * Clears the tree.
      */
-    this.reset = function() {
+    this.reset = function(baseName) {
 
         dataTree.root = {
-            ___$: "[ROOT]"
+            ___$: baseName || "root"
         };
 
     };
