@@ -1,6 +1,7 @@
 var dataAdapter = new function() {
 
     var VALUE_PREFIX = "___$", // special property prefix to store node value in JS object for GlobalsDB database.
+        JUMPER_PREFIX = "___J",
 
         _this = this; // ...
 
@@ -105,6 +106,18 @@ var dataAdapter = new function() {
 
     };
 
+    var clearObject = function(path) {
+
+        var name = path.slice().pop(),
+            obj = getTreeObjectByPath(path.slice(0, path.length - 1));
+        if (!obj) return;
+
+        if (obj.hasOwnProperty(name)) {
+            obj[name] = {};
+        }
+
+    };
+
     var getTreeObjectByPath = function(path) { // including ["root", ...]
 
         var i = -1,
@@ -162,28 +175,32 @@ var dataAdapter = new function() {
 
     };
 
-    var serverAdapter = new function() {
+    /**
+     * Returns if data loading from server is complete.
+     *
+     * @param path
+     */
+    var completedLevel = function(path) {
 
-        /**
-         * Returns if data loading from server is complete.
-         *
-         * @param path
-         */
-        var completedLevel = function(path) {
+        var hash = path.join(",");
 
-            var hash = path.join(",");
+        return limits.hasOwnProperty(hash);
 
-            return limits.hasOwnProperty(hash);
+    };
 
-        };
+    var setCompleted = function(path, completed) {
 
-        var setCompleted = function(path) {
+        var hash = path.join(",");
 
-            var hash = path.join(",");
-
+        if (completed) {
             limits[hash] = 1;
+        } else if (limits.hasOwnProperty(hash)) {
+            delete limits[hash];
+        }
 
-        };
+    };
+
+    var serverAdapter = new function() {
 
         this.requestNodeValue = function(path) {
 
@@ -223,7 +240,9 @@ var dataAdapter = new function() {
 
             //console.log("REQUESTING SERVER LEVEL DATA FROM " + from, path);
 
-            if (completedLevel(path)) return;
+            if (completedLevel(path)) {
+                return;
+            }
 
             var realPath = path.slice(1),
                 i = 0;
@@ -233,6 +252,8 @@ var dataAdapter = new function() {
                 max: 50
             };
 
+            var to = getTreeObjectByPath(path);
+            if (to.hasOwnProperty(JUMPER_PREFIX)) req.lo = to[JUMPER_PREFIX];
             if (from) req.lo = from;
 
             server.send({
@@ -252,7 +273,7 @@ var dataAdapter = new function() {
                 }
 
                 if (i < req.max) { // data is limited
-                    setCompleted(path);
+                    setCompleted(path, true);
                 }
 
                 _this.childUpdated(realPath);
@@ -278,8 +299,8 @@ var dataAdapter = new function() {
      * Must return array of property names on the current data level.
      *
      * @param path {Array} Dimension. For example, [1, "obj", 15] represents call to OBJECT[1]["obj"][15]
-     * [ @param from {Number|String} Property name to start return from. If not present, returns from beginning. ]
-     * [ @param number {Number} Number of elements to return. If not present, return everything available. ]
+     * @param from {Number|String=} Property name to start return from. If not present, returns from beginning.
+     * @param number {Number=} Number of elements to return. If not present, return everything available.
      * @returns {Array}
      */
     this.getLevel = function(path, number, from) {
@@ -299,7 +320,7 @@ var dataAdapter = new function() {
         } while (path[i] && obj);
 
         for (u in obj) { // return object properties list
-            if (!obj.hasOwnProperty(u) || u === VALUE_PREFIX) continue;
+            if (!obj.hasOwnProperty(u) || u === VALUE_PREFIX || u === JUMPER_PREFIX) continue;
             if (from) { if (u !== from) continue; else from = false; }
             if (number > 0) { number--; arr.push(u); lastProperty = u; } else { break; }
         }
@@ -407,7 +428,39 @@ var dataAdapter = new function() {
     };
 
     /**
-     * Clears the tree.
+     * Jumper is the special floor-limiter, which forces dataAdapter to request data from server
+     * beginning from given node. If there are a huge number of nodes, jumper is required to get
+     * the last node faster.
+     *
+     * @param {Array} pathArray - Path of type ["root", ...]
+     * @param {String} nodeName - Node to jump to. Empty value will erase jumper.
+     */
+    this.setJumper = function(pathArray, nodeName) {
+
+        var node = getTreeObjectByPath(pathArray);
+        if (!node) return;
+
+        setCompleted(pathArray, false);
+
+        if (!nodeName) {
+            if (node.hasOwnProperty(JUMPER_PREFIX)) delete node[JUMPER_PREFIX];
+            clearObject(pathArray);
+            _this.childUpdated(pathArray.slice(1));
+        } else {
+            clearObject(pathArray);
+            node = getTreeObjectByPath(pathArray);
+            node[JUMPER_PREFIX] = nodeName;
+            _this.childUpdated(pathArray.slice(1));
+        }
+
+        //serverAdapter.requestLevelData(pathArray);
+
+    };
+
+    /**
+     * Resets the tree and set up a base node name.
+     *
+     * @param {string="root"} baseName
      */
     this.reset = function(baseName) {
 

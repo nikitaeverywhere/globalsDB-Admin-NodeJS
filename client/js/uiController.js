@@ -11,7 +11,8 @@ var uiController = new function() {
             addNode: null,
             messageHead: null,
             messageBody: null,
-            editNode: null
+            editNode: null,
+            jumpNode: null
         },
         FIELDS = { // @autofill
             connectHostname: null,
@@ -26,7 +27,8 @@ var uiController = new function() {
             addNodeName: null,
             addNodeValue: null,
             editNodeName: null,
-            editNodeValue: null
+            editNodeValue: null,
+            jumpNodeName: null
         };
 
     var hideAll = function() {
@@ -38,6 +40,19 @@ var uiController = new function() {
             children[i].style.opacity = 0;
             children[i].style.visibility = "hidden";
         }
+
+    };
+
+    /**
+     * Focuses on element with a little timeot.
+     *
+     * @param element
+     */
+    var timeFocus = function(element) {
+
+        setTimeout(function() {
+            element.focus();
+        }, 20);
 
     };
 
@@ -76,6 +91,7 @@ var uiController = new function() {
 
         _this.showUI();
         targetElement(ELEMENTS.connect);
+        timeFocus(FIELDS.connectHostname);
 
     };
 
@@ -83,6 +99,7 @@ var uiController = new function() {
 
         _this.showUI();
         targetElement(ELEMENTS.login);
+        timeFocus(FIELDS.loginUsername);
 
     };
 
@@ -90,6 +107,7 @@ var uiController = new function() {
 
         _this.showUI();
         targetElement(ELEMENTS.addNode);
+        timeFocus(FIELDS.addNodeName);
 
     };
 
@@ -99,6 +117,14 @@ var uiController = new function() {
         FIELDS.editNodeValue.value = nodeValue;
         _this.showUI();
         targetElement(ELEMENTS.editNode);
+        timeFocus(FIELDS.editNodeValue);
+
+    };
+
+    this.switchJumpNodeForm = function() {
+
+        _this.showUI();
+        targetElement(ELEMENTS.jumpNode);
 
     };
 
@@ -250,6 +276,16 @@ var uiController = new function() {
 
             app.handle.editNode(name, value);
 
+        },
+
+        jumpNode: function() {
+
+            var name = FIELDS.jumpNodeName.value;
+
+            _this.hideUI();
+
+            app.handle.jumpNode(name);
+
         }
 
     };
@@ -281,6 +317,7 @@ var uiController = new function() {
         ELEMENTS.messageBody = document.getElementById("ui-message-body");
         ELEMENTS.addNode = document.getElementById("ui-addNode");
         ELEMENTS.editNode = document.getElementById("ui-editNode");
+        ELEMENTS.jumpNode = document.getElementById("ui-jumpNode");
 
         for (var i in FIELDS) {
             if (!FIELDS.hasOwnProperty(i)) continue;

@@ -1,12 +1,9 @@
-<!DOCTYPE html>
+<!DOCTYPE HTML>
 <html>
 
 <head>
     <title>Expand test</title>
-    <script type="text/javascript" src="js/uiController.js"></script>
-    <script type="text/javascript" src="js/server.js"></script>
-    <script type="text/javascript" src="js/dataAdapter.js"></script>
-    <script type="text/javascript" src="js/index.js"></script>
+    <link rel="icon" type="image/ico" href="favicon.ico"/>
     <link rel="stylesheet" href="css/index.css"/>
     <link rel="stylesheet" href="css/ui.css"/>
 
@@ -14,6 +11,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
     <meta name="MobileOptimized" content="320"/>
     <meta name="HandheldFriendly" content="true"/>
+    <meta name="mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+
+    <script type="text/javascript" src="js/uiController.js"></script>
+    <script type="text/javascript" src="js/server.js"></script>
+    <script type="text/javascript" src="js/dataAdapter.js"></script>
+    <script type="text/javascript" src="js/index.js"></script>
 </head>
 
 <body onload="app.init();" onresize="app.updateViewport();">
@@ -23,6 +27,8 @@
 
         </div>
     </div>
+
+    <ul id="treePath"></ul>
 
     <div id="ui">
         <div id="ui-connect" class="centralizer">
@@ -167,6 +173,35 @@
                                     <input id="cancelNodeEditButton" type="button" value="Cancel" onclick="uiController.hideUI();"/>
                                 </td>
                             </tr>
+                            </tbody>
+                        </table>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div id="ui-jumpNode" class="centralizer">
+            <div>
+                <div>
+                    <form onsubmit="uiController.handle.jumpNode(); return false;" class="inlineBlock">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <td colspan="2">
+                                        <h1>Jump to node</h1>
+                                    </td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><label for="jumpNodeName">Name: </label></td>
+                                    <td><input id="jumpNodeName" type="text" value="1000"/></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2">
+                                        <input id="jumpNodeButton" type="submit" value="Jump"/>
+                                        <input id="cancelJumpNodeButton" type="button" value="Cancel" onclick="uiController.hideUI();"/>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </form>

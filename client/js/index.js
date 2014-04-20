@@ -10,7 +10,8 @@ var Geometry = {
     },
 
     angleDifference: function(sourceAngle, destinationAngle) {
-        return this.normalizeAngle(destinationAngle - sourceAngle);
+        return Math.atan2(Math.sin(destinationAngle-sourceAngle),
+            Math.cos(destinationAngle-sourceAngle));
     }
 
 };
@@ -28,7 +29,8 @@ var app = new function() {
 
     var DOM_ELEMENTS = {
             VIEWPORT: null,
-            FIELD: null
+            FIELD: null,
+            TREE_PATH: null
         },
         USE_HARDWARE_ACCELERATION = false,
         DATA_ADAPTER = dataAdapter,
@@ -62,10 +64,13 @@ var app = new function() {
         TRIGGER_ADD = 0,
         TRIGGER_JUMP = 1;
 
+    this.de = DOM_ELEMENTS;
+
     var setElements = function() {
 
         DOM_ELEMENTS.VIEWPORT = document.getElementById("fieldViewport");
         DOM_ELEMENTS.FIELD = document.getElementById("field");
+        DOM_ELEMENTS.TREE_PATH = document.getElementById("treePath");
 
     };
 
@@ -162,8 +167,8 @@ var app = new function() {
          */
         this.setViewCenter = function(x, y) {
 
-            VIEW_X = WORLD_WIDTH/2 + x - VIEWPORT_WIDTH/2;
-            VIEW_Y = WORLD_HEIGHT/2 + y - VIEWPORT_HEIGHT/2;
+            VIEW_X = WORLD_WIDTH/2 + x*VIEWPORT_SCALE - VIEWPORT_WIDTH/2;
+            VIEW_Y = WORLD_HEIGHT/2 + y*VIEWPORT_SCALE - VIEWPORT_HEIGHT/2;
             if (!viewportUpdateInterval) viewportUpdateInterval = setInterval(viewportUpdater, 25);
 
         };
@@ -189,38 +194,129 @@ var app = new function() {
 
         var pointerEvents = new function() {
 
+            var updateInterval = 0,
+                newEvent;
+
+            var step = function() {
+
+                var e = newEvent;
+
+                if (e.scrolling) { // if there's a node to scroll
+
+                    var node = e.scrolling.parentNode,
+                        angle = -Math.atan2(e.x - e.ox, e.oy - e.y) + Math.PI/2;
+
+                    var deltaAngle = Geometry.angleDifference(angle, e.scrolling.angle);
+
+                    node.childController.updateSelectedIndex(-deltaAngle);
+
+                    e.scrolling.angle = angle;
+                    if (Math.abs(deltaAngle) < 0.001) {
+                        stopUpdate();
+                    }
+
+                    return;
+
+                }
+
+                if (!e.event.changedTouches || e.event.changedTouches.length < 2) {
+
+                } else {
+
+                    var d = Math.sqrt(
+                            Math.pow(
+                                    e.event.changedTouches[0].pageX - e.event.changedTouches[1].pageX,
+                                2
+                            ) +
+                            Math.pow(
+                                    e.event.changedTouches[0].pageY - e.event.changedTouches[1].pageY,
+                                2
+                            )
+                    );
+
+                    if (e.ld) {
+                        e.i++;
+                        _this.scaleView((d - e.ld)/100);
+                    }
+                    e.ld = d;
+
+                }
+
+                _this.setViewCenter(e.ovx + (e.ox - e.x)/VIEWPORT_SCALE,
+                        e.ovy + (e.oy - e.y)/VIEWPORT_SCALE);
+
+            };
+
+            var startUpdate = function() {
+                if (updateInterval) return;
+                clearInterval(updateInterval);
+                updateInterval = setInterval(step, 30);
+            };
+
+            var stopUpdate = function() {
+                clearInterval(updateInterval);
+                updateInterval = 0;
+            };
+
             this.started = function(e) {
 
                 e.ox = e.x;
                 e.oy = e.y;
                 e.i = 0;
                 e.ld = undefined;
-                e.ovx = _this.getViewX() + VIEWPORT_WIDTH/2;
-                e.ovy = _this.getViewY() + VIEWPORT_HEIGHT/2;
+                e.ovx = (_this.getViewX() + VIEWPORT_WIDTH/2)/VIEWPORT_SCALE;
+                e.ovy = (_this.getViewY() + VIEWPORT_HEIGHT/2)/VIEWPORT_SCALE;
+                e.scrolling = null;
+
+                var t = e.target;
+                do {
+                    if (t.NODE_OBJECT) {
+                        var node;
+                        try {
+                            node = t.NODE_OBJECT.getParent();
+                        } catch(e) { node = null; }
+                        if (node && !node.childController.isFreeAligned()) {
+                            e.scrolling = {
+                                currentNode: t.NODE_OBJECT,
+                                parentNode: node,
+                                angle: 0
+                            };
+                            var dir = //Geometry.normalizeAngle(
+                                    -Math.atan2(t.NODE_OBJECT.getX() - node.getX(),
+                                    node.getY() - t.NODE_OBJECT.getY()) + Math.PI/2
+                                /*)*/,
+                                len = Math.sqrt(Math.pow(t.NODE_OBJECT.getX() - node.getX(), 2) +
+                                        Math.pow(t.NODE_OBJECT.getY() - node.getY(), 2));
+                            e.scrolling.angle = dir;
+                            e.ox = e.ox - Math.cos(dir)*len*VIEWPORT_SCALE;
+                            e.oy = e.oy + Math.sin(dir)*len*VIEWPORT_SCALE;
+
+                            /*// @debug
+                            var el = document.createElement("DIV");
+                            el.className = "target";
+                            el.style.left = e.ox + "px";
+                            el.style.top = e.oy + "px";
+                            document.body.appendChild(el);*/
+
+                        }
+                    }
+                    t = t.parentNode;
+                } while (t);
 
             };
 
             this.moved = function(e) { // limited while pressed
 
-                // @todo: fix immediate double-touch zoom issue
-
-                if (!e.event.changedTouches || e.event.changedTouches.length < 2) {
-                    blockEvent(e.event);
-                } else {
-                    var d = Math.sqrt(Math.pow(e.event.changedTouches[0].pageX - e.event.changedTouches[1].pageX, 2) +
-                        Math.pow(e.event.changedTouches[0].pageY - e.event.changedTouches[1].pageY, 2));
-                    if (e.ld) {
-                        e.i++;
-                        _this.scaleView((d - e.ld)/100);
-                    }
-                    e.ld = d;
-                }
-                _this.setViewCenter(e.ovx + (e.ox - e.x), e.ovy + (e.oy - e.y));
+                blockEvent(e.event);
+                newEvent = e;
+                startUpdate();
 
             };
 
             this.ended = function(e) {
 
+                blockEvent(e.event);
+                stopUpdate();
                 //alert(e.i);
                 //console.log("scroll end");
 
@@ -367,11 +463,11 @@ var app = new function() {
      * Node element.
      *
      * @param parentNode {Node} Parent node
-     * @param initialIndex {Array} Node index. In case of string, node will try require data in data adapter with it's path.
+     * @param initialIndex {Array|string} Node index. In case of string, node will try require data in data adapter with it's path.
      *  In case of object, node will get new properties.
      * @param baseAngle
-     * [ @param startX ]
-     * [ @param startY ]
+     * @param {Number=} startX
+     * @param {Number=} startY
      * @constructor
      */
     var Node = function(parentNode, initialIndex, baseAngle, startX, startY) {
@@ -464,6 +560,7 @@ var app = new function() {
         this.getR = function() { return visualNodeProps.r; };
         this.getParent = function() { return PARENT_NODE; };
         this.getIndex = function() { return INDEX; };
+        this.getBaseAngle = function() { return baseAngle; };
         this.getStateAction = function() { return currentStateAction; };
 
         this.getPath = function() {
@@ -553,6 +650,10 @@ var app = new function() {
 
             };
 
+            this.isFreeAligned = function() {
+                return NODES_FREE_ALIGN;
+            };
+
             /**
              * Returns currently selected node.
              *
@@ -560,7 +661,7 @@ var app = new function() {
              */
             this.getCurrentNode = function() {
 
-                return __this.getChildNodeByIndex(child[SELECTED_INDEX]);
+                return __this.getChildNodeByIndex(child[Math.round(SELECTED_INDEX)]);
 
             };
 
@@ -569,7 +670,7 @@ var app = new function() {
              */
             this.triggerEvent = function() { // @update SELECTED_INDEX => argument
 
-                if (!beams[SELECTED_INDEX]) return;
+                if (!beams[Math.round(SELECTED_INDEX)]) return;
 
                 __this.forceViewUpdate();
 
@@ -596,7 +697,7 @@ var app = new function() {
 
                 switch (trigger) {
                     case TRIGGER_ADD: TREE_ROOT.handler.addNode(); break;
-                    case TRIGGER_JUMP: /* todo */ break;
+                    case TRIGGER_JUMP: TREE_ROOT.handler.jumpNode(); break;
                     default: console.log("Unrecognised trigger");
                 }
 
@@ -604,7 +705,7 @@ var app = new function() {
 
             this.handleSelect = function() {
 
-                var beam = beams[SELECTED_INDEX].beam,
+                var beam = beams[Math.round(SELECTED_INDEX)].beam,
                     node = beam.getNode(),
                     nodeIndex = node.getIndex();
 
@@ -654,8 +755,9 @@ var app = new function() {
                     SELECTED_INDEX = Math.max(-ADDITIONAL_CHILD, Math.min(child.length - 1, SELECTED_INDEX + indexDelta));
                     if (last !== SELECTED_INDEX) {
                         try {
-                            beams[last].beam.setRadius(beams[last].beam.getInitialRadius());
-                            beams[last].beam.getNode().childController.removeBeams();
+                            beams[Math.round(last)].beam.setRadius(
+                                beams[Math.round(last)].beam.getInitialRadius());
+                            beams[Math.round(last)].beam.getNode().childController.removeBeams();
                         } catch (e) {
                             console.error(e);
                         }
@@ -897,7 +999,7 @@ var app = new function() {
 
             };
 
-            var getAppropriateStateActionClassname = function() {
+            var getAppropriateStateActionClassName = function() {
 
                 switch (currentStateAction) {
                     case NODE_STATE_ACTION_SELECT: return CSS_CLASS_NAME_SELECT; break;
@@ -919,8 +1021,8 @@ var app = new function() {
                 for (var b in beams) {
                     if (!beams.hasOwnProperty(b)) continue;
                     beams[b].beam.highlight(
-                        (SELECTED_INDEX === beams[b].index)?
-                            getAppropriateStateActionClassname():CSS_EMPTY_CLASS_NAME
+                        (Math.round(SELECTED_INDEX) === beams[b].index)?
+                            getAppropriateStateActionClassName():CSS_EMPTY_CLASS_NAME
                     ); // @improve
                     if (baseAngleDefined) {
                         bAngle = 0;
@@ -978,8 +1080,8 @@ var app = new function() {
                     if (!beams.hasOwnProperty(b)) continue;
                     d = beams[b].index - VISUAL_SELECTED_INDEX;
                     beams[b].beam.highlight(
-                        (SELECTED_INDEX === beams[b].index)?
-                            getAppropriateStateActionClassname():CSS_EMPTY_CLASS_NAME
+                        (Math.round(SELECTED_INDEX) === beams[b].index)?
+                            getAppropriateStateActionClassName():CSS_EMPTY_CLASS_NAME
                     ); // @improve
                     //if (!beams[b].beam.getInitialRadius()) {
                         beams[b].beam.setRadius(Math.max(
@@ -1032,6 +1134,7 @@ var app = new function() {
 
             var el = document.createElement("DIV");
             el.className = CSS_CLASS_NAME_NODE;
+            el.NODE_OBJECT = _this;
             el.innerHTML = "<div><span>" + value + "</span></div>";
             el.onclick = handleClick;
             DOM_ELEMENTS.FIELD.appendChild(el);
@@ -1328,8 +1431,10 @@ var app = new function() {
 
     /**
      * Tree root has basic tree control capabilities.
+     *
+     * @param {string="ROOT"} baseName
      */
-    var TreeRoot = function() {
+    var TreeRoot = function(baseName) {
 
         var _this = this,
             rootNode = null,
@@ -1337,9 +1442,41 @@ var app = new function() {
 
         var init = function() {
 
+            baseName = baseName || "ROOT";
             rootNode = new Node(null, "root", undefined, 0, 0);
             triggeringNode = rootNode;
             rootNode.initChild();
+            updateTreePathView();
+
+        };
+
+        var updateTreePathView = function() {
+
+            var arr = _this.getCurrentPath(),
+                viewArr = arr.slice(),
+                el;
+
+            viewArr[0] = baseName;
+
+            DOM_ELEMENTS.TREE_PATH.innerHTML = "";
+
+            var setHandler = function(element, node) {
+                element.onclick = function(e) {
+                    if (node) {
+                        _this.setTriggeringNode(node);
+                        blockEvent(e);
+                    }
+                };
+            };
+
+            for (var i = 0; i < arr.length; i++) {
+                el = document.createElement("li");
+                el.innerHTML = viewArr[i];
+                var ci = arr.slice(1, i + 1),
+                    node = getNodeByPath(ci);
+                setHandler(el, node);
+                DOM_ELEMENTS.TREE_PATH.appendChild(el);
+            }
 
         };
 
@@ -1416,6 +1553,7 @@ var app = new function() {
             triggeringNode = node;
 
             manipulator.setViewCenter(node.getX(), node.getY());
+            updateTreePathView();
 
         };
 
@@ -1436,6 +1574,12 @@ var app = new function() {
             deleteNode: function(path) {
 
                 dataAdapter.deleteNode(path);
+
+            },
+
+            jumpNode: function() {
+
+                uiController.switchJumpNodeForm();
 
             }
 
@@ -1543,6 +1687,15 @@ var app = new function() {
                 }
             });
 
+        },
+
+        /**
+         * Jump to node (limit node by name)
+         */
+        jumpNode: function(name) {
+
+            dataAdapter.setJumper(TREE_ROOT.getCurrentPath(), name);
+
         }
 
     };
@@ -1559,14 +1712,13 @@ var app = new function() {
             TREE_ROOT.remove();
         }
 
-        // todo: unit/method testing
         if (adapter) {
             DATA_ADAPTER = adapter;
         }
 
         DATA_ADAPTER.reset(baseName);
 
-        TREE_ROOT = new TreeRoot();
+        TREE_ROOT = new TreeRoot(baseName);
 
     };
 

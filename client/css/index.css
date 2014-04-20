@@ -9,6 +9,17 @@ html, body {
     color: white;
 }
 
+.target {
+    position: fixed;
+    display: block;
+    left: 0;
+    top: 0;
+    width: 20px;
+    height: 20px;
+    background: red;
+    border-radius: 20px;
+}
+
 #fieldViewport {
     position: fixed;
     left: 0;
@@ -31,6 +42,57 @@ html, body {
     width: 100000px;
     height: 100000px;
     overflow: hidden;
+}
+
+#treePath {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: auto;
+    margin: 0;
+    padding: 0;
+    min-height: 48px;
+    display: block;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+}
+
+#treePath:before {
+    content: "";
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 48px;
+    height: 48px;
+    background: url(../img/treeIcon.png);
+    background-size: 100%;
+}
+
+#treePath li:first-child {
+    margin-left: 52px;
+}
+
+#treePath li {
+    display: inline-block;
+    background: rgb(68, 60, 71);
+    outline: none;
+    box-shadow: 0 0 3px 2px rgb(115, 233, 255);
+    border-radius: 2px;
+    border: none;
+    padding: 2px;
+    margin: 12px 4px 12px 4px;
+    color: white;
+    cursor: pointer;
+}
+
+#treePath li:focus {
+    box-shadow: 0 0 3px 2px rgb(114, 255, 179);
+}
+
+#treePath li:hover {
+    box-shadow: 0 0 5px 3px rgb(114, 255, 179);
 }
 
 .node {
