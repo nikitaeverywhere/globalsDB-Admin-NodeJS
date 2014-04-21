@@ -60,7 +60,7 @@ var server = new function() {
 
         callHandler(CONNECTED = false);
 
-        app.handle.connectionClose();
+        //app.handle.connectionClose();
 
     };
 

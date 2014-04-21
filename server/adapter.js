@@ -8,10 +8,8 @@ module.exports = function() {
     var requests = {
 
         open: function(data, handler) {
-            console.log("Normal database open");
             db.open(data, function(err, res) {
                 if (!err) LOGGED = true;
-                console.log("Handling database open...");
                 handler({
                     error: err,
                     result: res
@@ -20,10 +18,8 @@ module.exports = function() {
         },
 
         close: function(data, handler) {
-            console.log("Normal database close");
             db.close(function(err, res) {
                 if (!err) LOGGED = false;
-                console.log("Handling database close...");
                 handler({
                     error: err,
                     result: res
@@ -47,9 +43,6 @@ module.exports = function() {
                 max: data.max || DEFAULT_MAX
             }, function(error, result) {
 
-                console.log("Level request " + uid + " to db success.");
-
-                // converting
                 if (!error) {
 
                     for (var i = 0; i < result.length; i++) {

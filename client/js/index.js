@@ -25,6 +25,10 @@ var blockEvent = function(e) {
     }
 };
 
+/**
+ * GlobalsDB Admin interface.
+ * @author ZitRo
+ */
 var app = new function() {
 
     var DOM_ELEMENTS = {
@@ -36,6 +40,8 @@ var app = new function() {
         DATA_ADAPTER = dataAdapter,
         TREE_ROOT = null,
         manipulator,
+
+        VERSION = "0.8.1",
 
         // enables handling action by application
         ACTION_HANDLERS_ON = true,
@@ -63,8 +69,6 @@ var app = new function() {
 
         TRIGGER_ADD = 0,
         TRIGGER_JUMP = 1;
-
-    this.de = DOM_ELEMENTS;
 
     var setElements = function() {
 
@@ -1458,7 +1462,8 @@ var app = new function() {
 
             viewArr[0] = baseName;
 
-            DOM_ELEMENTS.TREE_PATH.innerHTML = "";
+            DOM_ELEMENTS.TREE_PATH.innerHTML =
+                "<li onclick=\"uiController.switchInfoPanel();\"><div><div>i</div></div></li>";
 
             var setHandler = function(element, node) {
                 element.onclick = function(e) {
@@ -1632,9 +1637,11 @@ var app = new function() {
      */
     this.handle = {
 
-        connectionClose: function() {
+        connectionClose: function(data) {
 
-
+            // do nothing
+            uiController.showMessage("Connection broken.", "Client was disconnected from server.");
+            uiController.switchConnectForm();
 
         },
 
@@ -1722,9 +1729,29 @@ var app = new function() {
 
     };
 
-    this.test = function(path) {
 
-        return TREE_ROOT.getNodeByPath(path);
+    /**
+     * This callback is displayed as part of the Requester class. Callback called twice: immediately
+     * after function call and after server data load.
+     * @callback app~addDescriptionCallBack
+     * @param {string} text - Text to output.
+     */
+
+    /**
+     * Returns app description.
+     * @param {app~addDescriptionCallBack} callback
+     */
+    this.getDescription = function(callback) {
+
+        callback("<h1>About</h1><h4>GlobalsDB Admin client v" + VERSION + "</h4>");
+
+        server.send({
+            request: "about"
+        }, function(data) {
+            if (data && data.result && !data.error) {
+                callback(data.result.result);
+            }
+        });
 
     };
 

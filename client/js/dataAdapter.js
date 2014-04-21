@@ -467,6 +467,7 @@ var dataAdapter = new function() {
         dataTree.root = {
             ___$: baseName || "root"
         };
+        limits = {};
 
     };
 

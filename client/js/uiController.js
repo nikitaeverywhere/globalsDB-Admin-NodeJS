@@ -12,7 +12,8 @@ var uiController = new function() {
             messageHead: null,
             messageBody: null,
             editNode: null,
-            jumpNode: null
+            jumpNode: null,
+            about: null
         },
         FIELDS = { // @autofill
             connectHostname: null,
@@ -28,7 +29,8 @@ var uiController = new function() {
             addNodeValue: null,
             editNodeName: null,
             editNodeValue: null,
-            jumpNodeName: null
+            jumpNodeName: null,
+            aboutField: null
         };
 
     var hideAll = function() {
@@ -52,7 +54,7 @@ var uiController = new function() {
 
         setTimeout(function() {
             element.focus();
-        }, 20);
+        }, 50);
 
     };
 
@@ -125,6 +127,17 @@ var uiController = new function() {
 
         _this.showUI();
         targetElement(ELEMENTS.jumpNode);
+
+    };
+
+    this.switchInfoPanel = function() {
+
+        _this.showUI();
+        targetElement(ELEMENTS.about);
+        FIELDS.aboutField.innerHTML = "";
+        app.getDescription(function(text){
+            FIELDS.aboutField.innerHTML += "<p>" + text + "</p>";
+        });
 
     };
 
@@ -318,6 +331,7 @@ var uiController = new function() {
         ELEMENTS.addNode = document.getElementById("ui-addNode");
         ELEMENTS.editNode = document.getElementById("ui-editNode");
         ELEMENTS.jumpNode = document.getElementById("ui-jumpNode");
+        ELEMENTS.about = document.getElementById("ui-about");
 
         for (var i in FIELDS) {
             if (!FIELDS.hasOwnProperty(i)) continue;

@@ -35,7 +35,7 @@
     display: inline-block;
 }
 
-form input, select {
+input, select {
     background: rgb(68, 60, 71);
     outline: none;
     box-shadow: 0 0 3px 2px rgb(115, 233, 255);
@@ -52,26 +52,26 @@ form input, select {
 }
 
 select:after {
-    content: "test";
+    content: "";
 }
 
-form input[type=submit], form input[type=button] {
+input[type=submit], input[type=button] {
     text-decoration: none;
     padding: 4px;
     font-weight: 900;
     cursor: pointer;
 }
 
-form input[type=submit]:hover, form input[type=button]:hover {
+input[type=submit]:hover, input[type=button]:hover {
     box-shadow: 0 0 5px 3px rgb(114, 255, 179);
 }
 
-form input[disabled] {
+input[disabled] {
     background: rgb(75, 75, 75) !important;
     box-shadow: 0 0 3px 2px rgb(127, 127, 127) !important;
 }
 
-form input:focus {
+input:focus {
     box-shadow: 0 0 3px 2px rgb(114, 255, 179);
 }
 

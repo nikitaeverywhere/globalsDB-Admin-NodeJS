@@ -110,8 +110,6 @@ module.exports = new function() {
             } else console.error("[clients] local variable fault.");
         });
 
-        console.log("New client connected");
-
         if (config.server.log) {
             logConnection(getSocketIP(ws));
         }
@@ -133,8 +131,6 @@ module.exports = new function() {
 
     var socketDataHandler = function(client, data) {
 
-        console.log("Data from client:");
-
         try {
 
             data = JSON.parse(data);
@@ -142,8 +138,6 @@ module.exports = new function() {
         } catch(e) { return }
 
         if (client.logged && client.authorized) { // if authorized and logged
-
-            console.log("Processing request ", data.request);
 
             if (!client.adapter) return;
 
@@ -156,14 +150,10 @@ module.exports = new function() {
             }
 
             client.adapter.asynchronousRequest(data, function(data) {
-                console.log("Request processed, sending response...");
                 send(client, data);
-                console.log("Response sent");
             });
 
         } else if (!client.authorized) { // if not authorized
-
-            console.log("Client not authorized, trying to authorize...");
 
             if (config.server.useMasterPassword) {
                 if (data.masterPassword !== config.server.masterPassword) {
@@ -189,61 +179,13 @@ module.exports = new function() {
 
             client.authorized = true;
 
-            console.log("Authorization succeeded.");
-
-            /*client.adapter.asynchronousRequest({
-                request: "open",
-                data: {
-                    path: "C:/temp/lal/lal",
-                    login: data.login,
-                    password: data.password,
-                    namespace: data.namespace
-                }
-            }, function(dbData) {
-                console.log(dbData);
-                client.adapter.asynchronousRequest({
-                    request: "setNode",
-                    data: {
-                        pathArray: ["testMeNode"],
-                        data: "test for creating new database"
-                    }
-                }, function(ee) {
-                    console.log(ee);
-                });
-            });*/
-
-            /*client.adapter.asynchronousRequest({
-                request: "open",
-                data: {
-                    path: config.database.databases[0], // @debug
-                    login: data.login,
-                    password: data.password,
-                    namespace: data.namespace
-                }
-            }, function(dbData) {
-                if (config.server.log) logLogin(!dbData.error, data, getSocketIP(client.socket));
-                if (dbData.error) {
-                    client.socket.close();
-                } else {
-                    send(client, {
-                        __id: data.__id,
-                        error: 0
-                    });
-                    client.logged = true;
-                }
-            });*/
-
         } else if (!client.logged && client.authorized) { // if authorized but not logged
             // creating db adapter for client if not exists || reset db connection.
 
-            console.log("Client authorized but not logged, logging in...");
-
             if (!client.adapter) {
-                console.log("Creating adapter...");
                 client.adapter = new Adapter();
-                console.log("Adapter created.");
             } else {
-                console.log("HAS ADAPTER socketInterface.js todo"); // todo
+                // todo connection fail resume @feature
             }
 
             if (!config.database.databases[data.database]) {
@@ -255,7 +197,6 @@ module.exports = new function() {
                 return;
             }
 
-            console.log("Requesting adapter open state...");
             client.adapter.asynchronousRequest({
                 request: "open",
                 data: {
@@ -265,11 +206,9 @@ module.exports = new function() {
                     namespace: data.namespace
                 }
             }, function(dbData) {
-                console.log("Open response received.");
                 if (config.server.log) logLogin(!dbData.error, data, getSocketIP(client.socket));
                 if (dbData.error) {
 
-                    console.log("Open failed");
                     send(client, {
                         __id: data.__id,
                         error: 1,
@@ -279,7 +218,6 @@ module.exports = new function() {
 
                 } else {
 
-                    console.log("Open success, sending to client");
                     send(client, {
                         __id: data.__id,
                         error: 0
@@ -292,7 +230,6 @@ module.exports = new function() {
 
         } else { // something weird
 
-            console.log("Weird!");
             client.socket.close();
 
         }
