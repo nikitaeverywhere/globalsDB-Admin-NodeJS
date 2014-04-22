@@ -35,7 +35,7 @@
     display: inline-block;
 }
 
-input, select {
+input, select, textarea {
     background: rgb(68, 60, 71);
     outline: none;
     box-shadow: 0 0 3px 2px rgb(115, 233, 255);
@@ -66,16 +66,16 @@ input[type=submit]:hover, input[type=button]:hover {
     box-shadow: 0 0 5px 3px rgb(114, 255, 179);
 }
 
-input[disabled] {
+input[disabled], select[disabled], textarea[disabled] {
     background: rgb(75, 75, 75) !important;
     box-shadow: 0 0 3px 2px rgb(127, 127, 127) !important;
 }
 
-input:focus {
+input:focus, select:focus, textarea:focus {
     box-shadow: 0 0 3px 2px rgb(114, 255, 179);
 }
 
-input::-moz-focus-inner {
+input::-moz-focus-inner, select::-moz-focus-inner, textarea::-moz-focus-inner {
     border: 0;
 }
 

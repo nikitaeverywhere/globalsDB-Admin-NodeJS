@@ -46,7 +46,7 @@ var uiController = new function() {
     };
 
     /**
-     * Focuses on element with a little timeot.
+     * Focuses on element with a little timeout.
      *
      * @param element
      */
