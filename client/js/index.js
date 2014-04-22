@@ -1095,7 +1095,8 @@ var app = new function() {
                     //}
                     beams[b].beam.setZIndex(-Math.round(d*d) + 200);
                     beams[b].beam.setAngle(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2
-                        + (visualNodeProps.baseAngle || Math.PI) + Math.PI);
+                        + ((typeof visualNodeProps.baseAngle === "number")?
+                            visualNodeProps.baseAngle:Math.PI) + Math.PI);
                 }
 
             };
