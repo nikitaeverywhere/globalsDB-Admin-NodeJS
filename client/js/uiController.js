@@ -54,6 +54,7 @@ var uiController = new function() {
 
         setTimeout(function() {
             element.focus();
+            element.select();
         }, 50);
 
     };
