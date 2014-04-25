@@ -202,9 +202,9 @@ table tr td {
 
 .footer {
     position: fixed;
-    float: right;
+    float: left;
     bottom: 0;
-    right: 0;
+    left: 0;
     margin: .5em;
     padding: 3px;
     background: rgba(0, 0, 0, 0.5);
