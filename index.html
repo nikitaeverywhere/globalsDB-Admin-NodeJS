@@ -1,0 +1,154 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>GlobalsDB</title>
+
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" href="css/base.css"/>
+</head>
+
+<body>
+    <a id="forkLink" href="https://github.com/ZitRos/globalsDB-Admin-NodeJS">
+        <img src="img/fork.png"/>
+    </a>
+    <div class="page">
+        <div class="leftMenuBlock">
+            <ul class="siteMenu">
+                <li>
+                    <a href="http://globalsdb.org" target="_blank"></a>
+                </li>
+                <li>
+                    <a id="linkMain" href="#main"></a>
+                </li>
+                <li>
+                    <a id="linkDownload" href="#download"></a>
+                </li>
+                <li>
+                    <a id="linkDescription" href="#description"></a>
+                </li>
+                <li>
+                    <a id="linkDemo" href="#demo"></a>
+                </li>
+            </ul>
+        </div>
+        <div class="pagesBlock">
+            <div id="download">
+                <div>
+                    <h1>Downloads</h1>
+                    <table>
+                        <thead>
+                            <tr>
+                                <td>
+                                    NodeJS server/client
+                                </td>
+                                <td>
+                                    Android apk client
+                                </td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <a href="files/GlobalsDB%20Admin%20v0.8.1.zip">v0.8.1</a>
+                                </td>
+                                <td>
+                                    <a href="files/GlobalsDB%20Admin%20v0.8.1-debug.apk">v0.8.1</a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="description">
+                <div>
+                    <h1>Description</h1>
+                    <h2>How to install and run</h2>
+                    <ol>
+                        <li>Make sure that you have NodeJS and GlobalsDB installed properly;</li>
+                        <li>
+                            Download end extract the <a href="#download">latest version</a>;
+                        </li>
+                        <li>
+                            Change default setting in config.js file by editing it. Examine and
+                            change the next variables:
+                            <ul>
+                                <li>
+                                    database.databases.primaryDB
+                                </li>
+                                <li>
+                                    server.masterPassword
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
+                            Make sure GlobalsDB is running;
+                        </li>
+                        <li>
+                            Start the server from run.js file;
+                        </li>
+                        <li>
+                            By default, client will be available on
+                            <a href="http://127.0.0.1">127.0.0.1:80</a>.
+                        </li>
+                    </ol>
+                    <h2>How to use</h2>
+                    <p>
+                        On client application (mobile or web) you have to join to your server first.
+                        Enter server's ip address with port on which server application placed
+                        (57775 by the default) and master password, which was set up in
+                        <i>config.js</i>.
+                    </p>
+                    <p>
+                        Next, you need to login and connect to GlobalsDB Adapter. Username,
+                        password and namespace fields are required. Also you need to choose
+                        configured database to connect to from dropdown menu.
+                    </p>
+                    <p>
+                        And now everything ready! If you are using PC with keyboard, try play with
+                        the next keys: up, down, left, right, enter, backspace, esc. And if you are
+                        using touchscreen or mouse, there's some things to note. Select nodes to
+                        move through by clicking on them. Select an option (delete or edit node) by
+                        clicking on node dimension (link between two nodes). Scroll a set of nodes
+                        by pressing and holding finger or cursor on the node in the set.
+                    </p>
+                </div>
+            </div>
+            <div id="demo">
+                <div>
+                    <h1>Screenshots and demos</h1>
+                    <div>
+                        <img src="img/screens/three.png"/>
+                        <img src="img/screens/two.png"/>
+                    </div>
+                </div>
+            </div>
+            <div id="main">
+                <div>
+                    <h1>Welcome to GlobalsDB Admin project homepage!</h1>
+                    <img class="img-prev1" src="img/graph/prev1.png"/>
+                    <p>
+                        GlobalsDB Admin is the visual admin interface for GlobalsDB.
+                    </p>
+                    <p>
+                        This is official GlobalsDB Admin project's homepage. Here you can download
+                        the latest version of GlobalsDB Admin, find out an up-to-date information
+                        about project developing and check out how does it work.
+                    </p>
+                    <p>
+                        The server application is available for NodeJS interface. Client
+                        application is also available as Web application or as an apk file for your
+                        Android device.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+        GlobalsDB Admin by
+        <a style="color: inherit !important; text-decoration: none" href="https://github.com/ZitRos">
+            ZitRo</a> © 2014
+    </div>
+</body>
+
+</html>
