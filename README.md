@@ -1,6 +1,6 @@
 GlobalsDB Admin for NodeJS
 ======================
-#####Demo-page coming soon...
+###[Project page](http://zitros.github.io/globalsDB-Admin-NodeJS)
 
 ###Description
 The administrative interface to GlobalsDB. Allows to view, manage and edit contents of Globlas database.
