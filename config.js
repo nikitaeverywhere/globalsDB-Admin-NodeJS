@@ -6,8 +6,7 @@ module.exports = {
     database: {
         modulePath: "./node_modules/globalsDB/cache", // globalsDB path to node module file (without extension)
         databases: { // list of available database directories
-            primaryDB: "C:/HardProgram/Globals/mgr",
-            secondaryDB: "C:/HardProgram/Globals/mgr2" // @test
+            primaryDB: "C:/HardProgram/GlobalsDB/mgr"
         }
     },
 

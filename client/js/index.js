@@ -25,6 +25,16 @@ var blockEvent = function(e) {
     }
 };
 
+var Debugger = {
+
+    log: function(text) {
+
+        document.getElementById("debugger").innerHTML = text;
+
+    }
+
+};
+
 /**
  * GlobalsDB Admin interface.
  * @author ZitRo
@@ -66,6 +76,8 @@ var app = new function() {
         MIN_NODES_DISTANCE = 110, // minimal distance between nodes
         BASE_NODE_RADIUS = 140,
         TREE_NODE_RADIUS = 80,
+
+        VIEW_UPDATES_PER_STEP = 0,
 
         TRIGGER_ADD = 0,
         TRIGGER_JUMP = 1;
@@ -1083,20 +1095,29 @@ var app = new function() {
                 for (var b in beams) {
                     if (!beams.hasOwnProperty(b)) continue;
                     d = beams[b].index - VISUAL_SELECTED_INDEX;
-                    beams[b].beam.highlight(
-                        (Math.round(SELECTED_INDEX) === beams[b].index)?
-                            getAppropriateStateActionClassName():CSS_EMPTY_CLASS_NAME
-                    ); // @improve
-                    //if (!beams[b].beam.getInitialRadius()) {
-                        beams[b].beam.setRadius(Math.max(
-                            beams[b].beam.getNode().getR()/Math.tan(Math.PI*2/MAX_VISUAL_ELEMENTS),
-                            beams[b].beam.getNode().getR() + node.getR() + MIN_NODES_DISTANCE
-                        ));
-                    //}
-                    beams[b].beam.setZIndex(-Math.round(d*d) + 200);
-                    beams[b].beam.setAngle(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2
+//                    beams[b].beam.highlight(
+//                        (Math.round(SELECTED_INDEX) === beams[b].index)?
+//                            getAppropriateStateActionClassName():CSS_EMPTY_CLASS_NAME
+//                    ); // @improve
+//                    //if (!beams[b].beam.getInitialRadius()) {
+//                        beams[b].beam.setRadius(Math.max(
+//                            beams[b].beam.getNode().getR()/Math.tan(Math.PI*2/MAX_VISUAL_ELEMENTS),
+//                            beams[b].beam.getNode().getR() + node.getR() + MIN_NODES_DISTANCE
+//                        ));
+//                    //}
+//                    beams[b].beam.setZIndex(-Math.round(d*d) + 200);
+//                    beams[b].beam.setAngle(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2
+//                        + ((typeof visualNodeProps.baseAngle === "number")?
+//                            visualNodeProps.baseAngle:Math.PI) + Math.PI);
+                    beams[b].beam.updateGeometry(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2
                         + ((typeof visualNodeProps.baseAngle === "number")?
-                            visualNodeProps.baseAngle:Math.PI) + Math.PI);
+                            visualNodeProps.baseAngle:Math.PI) + Math.PI,
+                        Math.max(
+                                beams[b].beam.getNode().getR()/Math.tan(Math.PI*2/MAX_VISUAL_ELEMENTS),
+                                beams[b].beam.getNode().getR() + node.getR() + MIN_NODES_DISTANCE
+                        ),
+                            -Math.round(d*d) + 200, (Math.round(SELECTED_INDEX) === beams[b].index)?
+                            getAppropriateStateActionClassName():CSS_EMPTY_CLASS_NAME);
                 }
 
             };
@@ -1168,6 +1189,8 @@ var app = new function() {
             }
 
             element.style.width = element.style.height = visualNodeProps.r*2 + "px";
+
+            VIEW_UPDATES_PER_STEP += 1;
 
         };
 
@@ -1301,6 +1324,10 @@ var app = new function() {
 
         };
 
+        /**
+         * @deprecated
+         * @param direction
+         */
         this.setAngle = function(direction) {
 
             visualBeamProps.angle = Geometry.normalizeAngle(direction);
@@ -1309,6 +1336,10 @@ var app = new function() {
 
         };
 
+        /**
+         * @deprecated
+         * @param radius
+         */
         this.setRadius = function(radius) {
 
             if (!visualBeamProps.initialRadius) visualBeamProps.initialRadius = radius;
@@ -1318,10 +1349,35 @@ var app = new function() {
 
         };
 
+        /**
+         * @deprecated
+         * @param z
+         */
         this.setZIndex = function(z) {
 
             if (element) element.style.zIndex = 11 + z;
             if (node) node.setZIndex(12 + z);
+
+        };
+
+        /**
+         * Completely updates beam.
+         * @param angle
+         * @param radius
+         * @param zIndex
+         */
+        this.updateGeometry = function(angle, radius, zIndex, CSSClassName) {
+
+            visualBeamProps.angle = Geometry.normalizeAngle(angle);
+            node.setBaseAngle(Geometry.normalizeAngle(visualBeamProps.angle + Math.PI));
+            if (!visualBeamProps.initialRadius) visualBeamProps.initialRadius = radius;
+            visualBeamProps.r = radius;
+            if (element) element.style.zIndex = 11 + zIndex;
+            if (node) node.setZIndex(12 + zIndex);
+            element.className = CSS_CLASS_NAME_LINK + " " + CSSClassName;
+            if (node) node.highlight(CSSClassName);
+
+            updateView();
 
         };
 
@@ -1348,6 +1404,7 @@ var app = new function() {
         /**
          * Make link glow (highlight link).
          *
+         * @deprecated
          * @param CSSClassName {Boolean}
          */
         this.highlight = function(CSSClassName) {
@@ -1411,6 +1468,8 @@ var app = new function() {
 
             }
 
+            VIEW_UPDATES_PER_STEP += 1;
+
         };
 
         var updateView = function() {
@@ -1419,6 +1478,7 @@ var app = new function() {
                 parentNode.getX() + visualBeamProps.r*Math.cos(visualBeamProps.angle),
                 parentNode.getY() + visualBeamProps.r*Math.sin(visualBeamProps.angle)
             );
+
             updateElementPosition();
 
         };
@@ -1772,6 +1832,11 @@ var app = new function() {
 
         uiController.init();
         uiController.switchConnectForm();
+
+//        setInterval(function() {
+//            Debugger.log("UPDATES latency: " + VIEW_UPDATES_PER_STEP);
+//            VIEW_UPDATES_PER_STEP = 0;
+//        }, 500);
 
     }
 
