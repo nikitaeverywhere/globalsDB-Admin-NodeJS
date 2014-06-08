@@ -17,11 +17,10 @@ module.exports = new function() {
 
     this.MANIFEST = {
 
-        VERSION: "0.9.5.3",
+        VERSION: "0.9.5.4",
         AUTHOR: "ZitRo",
-        DATE: "27.02.2014",
-        DESCRIPTION: "GlobalsDB admin server adapter",
-        COPYRIGHT: "Modified version special for GoldenByte challenge. All rights protected."
+        DESCRIPTION: "GlobalsDB Admin server adapter",
+        COPYRIGHT: "GlobalsDB Admin 2014 © All rights protected."
 
     };
 
