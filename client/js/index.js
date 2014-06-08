@@ -51,7 +51,7 @@ var app = new function() {
         TREE_ROOT = null,
         manipulator,
 
-        VERSION = "0.8.1",
+        CLIENT_VERSION = "0.9",
 
         // enables handling action by application
         ACTION_HANDLERS_ON = true,
@@ -1804,7 +1804,8 @@ var app = new function() {
      */
     this.getDescription = function(callback) {
 
-        callback("<h1>About</h1><h4>GlobalsDB Admin client v" + VERSION + "</h4>");
+        callback("<h1>About</h1><h3>GlobalsDB Admin client</h3>" +
+            "<div>VERSION: " + CLIENT_VERSION + "</div>");
 
         server.send({
             request: "about"
@@ -1812,6 +1813,25 @@ var app = new function() {
             if (data && data.result && !data.error) {
                 callback(data.result.result);
             }
+        });
+
+        server.send({
+            request: "getManifest"
+        }, function(data) {
+
+            var s = "<h3>GlobalsDB Admin NodeJS Server adapter</h3>" +
+                "<div style=\"display: inline-block; margin: 0 auto; text-align: left;\">";
+            data = data.manifest || {};
+
+            for (var p in data) {
+                if (!data.hasOwnProperty(p)) continue;
+                s += "<div>" + p + ": " + data[p] + "</div>";
+            }
+
+            s += "</div>";
+
+            callback(s);
+
         });
 
     };
@@ -1832,11 +1852,6 @@ var app = new function() {
 
         uiController.init();
         uiController.switchConnectForm();
-
-//        setInterval(function() {
-//            Debugger.log("UPDATES latency: " + VIEW_UPDATES_PER_STEP);
-//            VIEW_UPDATES_PER_STEP = 0;
-//        }, 500);
 
     }
 
