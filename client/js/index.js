@@ -51,7 +51,7 @@ var app = new function() {
         TREE_ROOT = null,
         manipulator,
 
-        CLIENT_VERSION = "0.9",
+        CLIENT_VERSION = "0.9.1",
 
         // enables handling action by application
         ACTION_HANDLERS_ON = true,
@@ -1736,17 +1736,12 @@ var app = new function() {
 
             if (!TREE_ROOT) return;
             var path = TREE_ROOT.getCurrentPath();
-            console.log(path);
             if (!path.length) return;
             var node = TREE_ROOT.getNodeByPath(path.slice(1));
-            console.log(node);
             if (!node) return;
             node = node.childController.getCurrentNode();
-            console.log(node);
             if (!node) return;
-            console.log(node.getIndex(), name);
             if (node.getIndex() !== name) return;
-            console.log("OK");
 
             dataAdapter.setNode(path, name, value, function(success) {
                 if (!success) {

@@ -73,6 +73,8 @@ var uiController = new function() {
 
     };
 
+    this.showLoadingAnimation = showLoadingAnimation;
+
     this.showUI = function() {
 
         UI_SHOWN = true;
