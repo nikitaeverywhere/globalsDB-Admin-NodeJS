@@ -1,11 +1,9 @@
 /**
  * WebSocket interface to application.
  */
-
 module.exports = new function() {
 
     var config = require("./../config.js"),
-        mainApplication = require("./index.js"),
         Adapter = require("./adapter.js"),
         WebSocketServer = require("ws").Server,
         fs = require("fs"),

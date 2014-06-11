@@ -4,7 +4,7 @@
 module.exports = {
 
     database: {
-        modulePath: "./node_modules/globalsDB/cache", // globalsDB path to node module file (without extension)
+        modulePath: "globalsDB/cache", // globalsDB path to node module file (without extension)
         databases: { // list of available database directories
             primaryDB: "C:/HardProgram/GlobalsDB/mgr"
         }
@@ -12,7 +12,7 @@ module.exports = {
 
     server: { // server settings
         port: 57775, // port of server WebSocket application
-        masterPassword: "protect", // second password, server will disconnect any client without masterPassword if on
+        masterPassword: "protect", // security password
         useMasterPassword: true, // turn master password usage on
         log: true, // log connections
         logFileName: "log.txt" // !RELATIVE! path with file name

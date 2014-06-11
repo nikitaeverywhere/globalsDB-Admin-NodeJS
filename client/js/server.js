@@ -5,9 +5,9 @@ var server = new function() {
         CONNECTED = false,
         connectionHandler,
         LOG_DATA = false,
-        REQUESTS_LIMIT = 2,
+        REQUESTS_LIMIT = 4,
         REQUESTS_IN_PROGRESS = 0,
-        REQUEST_TIMEOUT = 5000,
+        REQUEST_TIMEOUT = 4000,
         handlers = {};
 
     var requestStack = [], // stack with requesting objects

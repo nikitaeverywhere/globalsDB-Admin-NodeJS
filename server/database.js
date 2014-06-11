@@ -1,10 +1,12 @@
 /**
  * GlobalsDB module adapter.
  */
+var config = require("./../config.js"),
+    GlobalsModule = require(config.database.modulePath);
+
 module.exports = function() {
 
-    var config = require("./../config.js"),
-        globals,
+    var globals,
         db;
 
     /**
@@ -108,7 +110,7 @@ module.exports = function() {
     this.init = function() {
 
         try {
-            globals = require(config.database.modulePath);
+            globals = GlobalsModule;
             db = new globals.Cache();
         } catch (e) {
             console.error(e, "Cannot join globals module " + config.database.modulePath);
