@@ -10,7 +10,6 @@ module.exports = function() {
         db;
 
     /**
-     *
      * @param parameters {{path: String, username: String, password: String, namespace: String}}
      * @param handler
      */

@@ -1,4 +1,3 @@
-X = [];
 var server = new function() {
 
     var ws,
@@ -115,9 +114,8 @@ var server = new function() {
             delete handlers[i];
         }
 
+        REQUESTS_IN_PROGRESS = 0;
         callHandler(CONNECTED = false);
-
-        //app.handle.connectionClose();
 
     };
 

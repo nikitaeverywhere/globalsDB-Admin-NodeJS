@@ -4,8 +4,6 @@
 <head>
     <title>GlobalsDB Admin</title>
     <link rel="icon" type="image/ico" href="favicon.ico"/>
-    <link rel="stylesheet" href="css/index.css"/>
-    <link rel="stylesheet" href="css/ui.css"/>
 
     <meta charset="utf-8"/>
     <meta name="author" content="ZitRo"/>
@@ -15,10 +13,20 @@
     <meta name="mobile-web-app-capable" content="yes"/>
     <meta name="apple-mobile-web-app-capable" content="yes"/>
 
-    <script type="text/javascript" src="js/uiController.js"></script>
-    <script type="text/javascript" src="js/server.js"></script>
-    <script type="text/javascript" src="js/dataAdapter.js"></script>
-    <script type="text/javascript" src="js/index.js"></script>
+    <!-- @if NODE_ENV == "DEVELOPMENT" -->
+        <link rel="stylesheet" href="css/index.css"/>
+        <link rel="stylesheet" href="css/ui.css"/>
+        <script type="text/javascript" src="js/uiController.js"></script>
+        <script type="text/javascript" src="js/server.js"></script>
+        <script type="text/javascript" src="js/dataAdapter.js"></script>
+        <script type="text/javascript" src="js/index.js"></script>
+    <!-- @endif -->
+
+    <!-- @if NODE_ENV == "PRODUCTION" -->
+        <link rel="stylesheet" href="css/app.css"/>
+        <script type="text/javascript" src="js/app.js"></script>
+    <!-- @endif -->
+
 </head>
 
 <body onload="app.init();" onresize="app.updateViewport();">

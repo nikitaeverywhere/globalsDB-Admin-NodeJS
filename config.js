@@ -25,7 +25,7 @@ module.exports = {
     },
 
     system: { // advanced settings, do not edit
-        cwd: process.cwd() // globalsDB directory change fix
+        cwd: __dirname // globalsDB directory change fix
     }
 
 };
