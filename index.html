@@ -41,15 +41,32 @@
                         <thead>
                             <tr>
                                 <td>
-                                    NodeJS server/client
+                                    NodeJS server only
                                 </td>
                                 <td>
-                                    Android apk client
+                                    NodeJS server / client
+                                </td>
+                                <td>
+                                    Android client
                                 </td>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
+                                <td>
+                                    <a href="files/v1.0.0.GlobalsDBAdmin-ServerOnly.zip">v1.0.0</a>
+                                </td>
+                                <td>
+                                    <a href="files/v1.0.0.GlobalsDBAdmin.zip">v1.0.0 / v1.0.0</a>
+                                </td>
+                                <td>
+                                    <a href="files/v1.0.0.GlobalsDBAdminAndroidClient.apk">v1.0.0</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+
+                                </td>
                                 <td>
                                     <a href="files/GlobalsDB%20Admin%20v0.8.1.zip">v0.8.1</a>
                                 </td>
@@ -64,36 +81,132 @@
             <div id="description">
                 <div>
                     <h1>Description</h1>
-                    <h2>How to install and run</h2>
+                    <p>
+                        GlobalsDB Admin is an simple visual instrument, developed for
+                        <a href="http://www.intersystems.com/">InterSystems</a>
+                        <a href="http://globalsdb.org">GlobalsDB</a> project to help administrators
+                        to reach their goals. This instrument allows to control any Globals database
+                        with simple and elegant graphical interface from any device and any place.
+                    </p>
+                    <h2>Complete installation and running guide</h2>
+                    <h4>NodeJS server and client installation</h4>
                     <ol>
-                        <li>Make sure that you have NodeJS and GlobalsDB installed properly;</li>
                         <li>
-                            Download end extract the <a href="#download">latest version</a>;
-                        </li>
-                        <li>
-                            Change default setting in config.js file by editing it. Examine and
-                            change the next variables:
+                            Make sure that you have NodeJS and GlobalsDB installed properly;
                             <ul>
                                 <li>
-                                    database.databases.primaryDB
+                                    Get the <a href="http://nodejs.org">NodeJS</a> latest
+                                    installation.
                                 </li>
                                 <li>
-                                    server.masterPassword
+                                    Get the <a href="http://globalsdb.org">GlobalsDB</a> latest
+                                    installation.
                                 </li>
                             </ul>
                         </li>
                         <li>
-                            Make sure GlobalsDB is running;
+                            Download end extract the
+                            <a href="#download">latest GlobalsDB Admin version</a>;
+                            <ul>
+                                <li>
+                                    The standard variant is to download latest GlobalsDB admin
+                                    <a href="files/v1.0.0.GlobalsDBAdmin.zip">
+                                        NodeJS Server and Client
+                                    </a> together.
+                                </li>
+                                <li>
+                                    Extract archive at any place you want.
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
+                            Change default settings in config.js file by editing it.
+                            <ul>
+                                <li>
+                                    Replace <u>"C:/HardProgram/GlobalsDB/mgr"</u> with location of
+                                    your database. This folder have to contain CACHE.DAT file(s).
+                                    Also you may want to change the display name of this database by
+                                    replacing <u>primaryDB</u>.
+                                </li>
+                                <li>
+                                    Replace <u>masterPassword</u> property to ensure that your data
+                                    secured.
+                                </li>
+                                <li>
+                                    Check all of the other properties.
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
+                            Prepare your environment;
+                            <ul>
+                                <li>
+                                    If you are NOT using Windows operating system (f.e. Linux), then
+                                    you have to replace <u>node_modules/globalsDB/cache.node</u>
+                                    file with the file located at your <b>database directory</b> at
+                                    <u><b>/db/installation/path/</b>bin/cache****.node</u> (or
+                                    rename one of suitable files in node_modules/globalsDB/
+                                    directory to cache.node, or just change module name to suitable
+                                    module in config.js). This
+                                    file is a GlobalsDB adapter for NodeJS. If there's no such file,
+                                    you need to download it from the <a href="http://globalsdb.org">
+                                    GlobalsDB official cite</a>.
+                                </li>
+                                <li>
+                                    Ensure that GlobalsDB instance is running.
+                                </li>
+                                <li>
+                                    Check if ports 57775 and 80 (default) are available for
+                                    listening. You can change them at the config.js file.
+                                </li>
+                            </ul>
                         </li>
                         <li>
                             Start the server from run.js file;
+                            <ul>
+                                <li>
+                                    Navigate to the directory you have extracted files to in your
+                                    system terminal by running <u>$ cd /path/to/globalsDbAdmin</u>
+                                    command.
+                                </li>
+                                <li>
+                                    Run the application: <u>$ node run</u>.
+                                </li>
+                                <li>
+                                    You have to get "System start successful. Everything ready!"
+                                    according to version 1.0.0.
+                                </li>
+                            </ul>
                         </li>
                         <li>
-                            By default, client will be available on
-                            <a href="http://127.0.0.1">127.0.0.1:80</a>.
+                            That is! Now you can use local client (http://127.0.0.1:80 by default)
+                            to join to GlobalsDB Admin server application and look for your
+                            database.
+                        </li>
+                        <li>
+                            Also, if you want to run application as a daemon (in a background), you
+                            need to install <a href="https://www.npmjs.org/package/forever">
+                            forever</a>. Run <u>$ npm install -g forever</u>, and then launch
+                            GlobalsDB Admin instead with <u>$ forever start run.js</u> command.
+                            <ul>
+                                <li>
+                                    Consult <u>$ forever --help</u> for further help.
+                                </li>
+                                <li>
+                                    Running application with forever on Windows with latest versions
+                                    of Node (v 0.10.28+) may do nothing, that's a
+                                    <a href="https://github.com/nodejitsu/forever/issues/337">
+                                    known issue</a>.
+                                </li>
+                            </ul>
                         </li>
                     </ol>
-                    <h2>How to use</h2>
+                    <p>
+                        If there is any unknown startup errors, bugs, etc. please, leave an issue on
+                        project's <a href="https://github.com/ZitRos/globalsDB-Admin-NodeJS/issues">
+                        bug tracker</a>.
+                    </p>
+                    <h2>How to use it</h2>
                     <p>
                         On client application (mobile or web) you have to join to your server first.
                         Enter server's ip address with port on which server application placed
@@ -119,7 +232,11 @@
                 <div>
                     <h1>Screenshots and demos</h1>
                     <div>
-                        <h2><a href="preview/index.html">Client demo page (offline)</a></h2>
+                        <h2>
+                            <center>
+                                <a href="preview/index.html">Client demo page</a>
+                            </center>
+                        </h2>
                         <img src="img/screens/three.png"/>
                         <img src="img/screens/two.png"/>
                     </div>
@@ -130,17 +247,22 @@
                     <h1>Welcome to GlobalsDB Admin project homepage!</h1>
                     <img class="img-prev1" src="img/graph/prev1.png"/>
                     <p>
-                        GlobalsDB Admin is the visual admin interface for GlobalsDB.
+                        GlobalsDB Admin is the simple visual admin instrument for
+                        <a href="http://www.intersystems.com/">InterSystems</a>
+                        <a href="http://globalsdb.org">GlobalsDB</a>. Access and control your
+                        database from any device and any place.
                     </p>
                     <p>
                         This is official GlobalsDB Admin project's homepage. Here you can download
                         the latest version of GlobalsDB Admin, find out an up-to-date information
                         about project developing and check out how does it work.
                     </p>
+                    <img class="img-prev2" src="img/graph/prev2.png"/>
                     <p>
                         The server application is available for NodeJS interface. Client
-                        application is also available as Web application or as an apk file for your
-                        Android device.
+                        application is also available as Web application or as an app for your
+                        Android device. Choose the best variant and discover a new administering
+                        tools!
                     </p>
                 </div>
             </div>
