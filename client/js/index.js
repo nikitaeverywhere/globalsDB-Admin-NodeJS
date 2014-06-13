@@ -616,12 +616,12 @@ var app = new function() {
 
                 var search = {
                         name: "jump to node",
-                        value: "<img class=\"jumpIcon\"/>",
+                        value: "<img src=\"img/jumpIcon.png\" class=\"jumpIcon\"/>",
                         trigger: TRIGGER_JUMP
                     },
                     add = {
                         name: "add node",
-                        value: "<img class=\"addIcon\"/>",
+                        value: "<img src=\"img/addIcon.png\" class=\"addIcon\"/>",
                         trigger: TRIGGER_ADD
                     };
 
