@@ -15,7 +15,7 @@ module.exports = new function() {
 
     this.MANIFEST = {
 
-        VERSION: "0.9.5.4",
+        VERSION: "1.0.0",
         AUTHOR: "ZitRo",
         DESCRIPTION: "GlobalsDB Admin server adapter",
         COPYRIGHT: "GlobalsDB Admin 2014 © All rights protected."
@@ -68,10 +68,10 @@ module.exports = new function() {
 
     var logLogin = function(success, data, ip) {
 
-        appendToLogFile("Login ["+(success?"SUCCESS":"FAIL")+"] on " + new Date + " IP=" + ip + "; DB=" +
-            (data.path || "default") + "; NAMESPACE=" + data.namespace + "; LOGIN=" + data.login + "; PASS=" +
-            (data.password || "").replace(/./g, "*") +
-            (config.server.useMasterPassword?"; MASTER_PASSWORD="+data.masterPassword:""));
+        appendToLogFile("Login ["+(success?"SUCCESS":"FAIL")+"] on " + new Date + " IP=" + ip
+            + "; DB=" + (data.path || "default") + "; NAMESPACE=" + data.namespace + "; LOGIN="
+            + data.login + "; PASS=" + (data.password || "").replace(/./g, "*") +
+            (config.server.useMasterPassword?"; MASTER_PASSWORD: OK":""));
 
     };
 
@@ -99,11 +99,14 @@ module.exports = new function() {
 
         ws.on("close", function(code, reason) {
             if (clients.hasOwnProperty(id) && typeof clients[id] === "object") {
-                /*if (clients[id].adapter) clients[id].adapter.asynchronousRequest({
-                    request: "close" // gc-able?
-                }, function(data) {});*/
-                delete clients[id];
-                logDisconnect(getSocketIP(ws));
+                if (clients[id].adapter) {
+                    clients[id].adapter.asynchronousRequest({
+                        request: "close"
+                    }, function(data) {
+                        delete clients[id];
+                        logDisconnect(getSocketIP(ws));
+                    });
+                }
             } else console.error("[clients] local variable fault.");
         });
 
@@ -114,9 +117,8 @@ module.exports = new function() {
     };
 
     /**
-     *
      * @param client
-     * @param data {Object}
+     * @param {Object} data
      */
     var send = function(client, data) {
 
@@ -132,7 +134,7 @@ module.exports = new function() {
 
             data = JSON.parse(data);
 
-        } catch(e) { return }
+        } catch(e) { return; }
 
         if (client.logged && client.authorized) { // if authorized and logged
 
@@ -182,7 +184,7 @@ module.exports = new function() {
             if (!client.adapter) {
                 client.adapter = new Adapter();
             } else {
-                // todo connection fail resume @feature
+                // @feature connection fail resume
             }
 
             if (!config.database.databases[data.database]) {
@@ -233,13 +235,19 @@ module.exports = new function() {
 
     };
 
-    this.init = function() {
+    /**
+     * @param {function=} callback
+     */
+    this.init = function(callback) {
 
         webSocketServer = new WebSocketServer({
             port: config.server.port
+        }, function(result) {
+            console.log("Web socket server listens on port " + config.server.port);
+            if (typeof callback === "function") callback(result);
         });
+
         webSocketServer.on("connection", newConnection);
-        console.log("Server joined.");
 
     };
 

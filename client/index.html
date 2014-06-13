@@ -42,8 +42,13 @@
     <div id="ui">
         <div id="ui-connect" class="centralizer">
             <div>
+                <div id="connect-helpbox" style="position: fixed; right: 10px; top: 10px">
+                    <a target="_blank"
+                       href="http://zitros.github.io/globalsDB-Admin-NodeJS/#description">help</a>
+                </div>
                 <div>
-                    <form onsubmit="uiController.handle.connect(); return false;" class="inlineBlock">
+                    <form onsubmit="uiController.handle.connect(); return false;"
+                          class="inlineBlock">
                         <table>
                             <thead>
                             <tr>
@@ -125,7 +130,8 @@
         <div id="ui-addNode" class="centralizer">
             <div>
                 <div>
-                    <form onsubmit="uiController.handle.addNode(); return false;" class="inlineBlock">
+                    <form onsubmit="uiController.handle.addNode();return false;"
+                          class="inlineBlock">
                         <table>
                             <thead>
                                 <tr>
@@ -137,7 +143,8 @@
                             <tbody>
                                 <tr>
                                     <td><label for="addNodeName">Name: </label></td>
-                                    <td><input id="addNodeName" type="text" value="deleteMePlease"/></td>
+                                    <td><input id="addNodeName" type="text" value="deleteMePlease"/>
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td><label for="addNodeValue">Value: </label></td>
@@ -146,7 +153,8 @@
                                 <tr>
                                     <td colspan="2">
                                         <input id="addNodeButton" type="submit" value="Add"/>
-                                        <input id="cancelNodeAddButton" type="button" value="Cancel" onclick="uiController.hideUI();"/>
+                                        <input id="cancelNodeAddButton" type="button"
+                                               value="Cancel" onclick="uiController.hideUI();"/>
                                     </td>
                                 </tr>
                             </tbody>
@@ -158,7 +166,8 @@
         <div id="ui-editNode" class="centralizer">
             <div>
                 <div>
-                    <form onsubmit="uiController.handle.editNode(); return false;" class="inlineBlock">
+                    <form onsubmit="uiController.handle.editNode(); return false;"
+                          class="inlineBlock">
                         <table>
                             <thead>
                             <tr>
@@ -170,7 +179,8 @@
                             <tbody>
                             <tr>
                                 <td><label for="editNodeName">Name: </label></td>
-                                <td><input id="editNodeName" type="text" value="deleteMePlease" disabled/></td>
+                                <td><input id="editNodeName" type="text" value="deleteMePlease"
+                                           disabled/></td>
                             </tr>
                             <tr>
                                 <td><label for="editNodeValue">Value: </label></td>
@@ -179,7 +189,8 @@
                             <tr>
                                 <td colspan="2">
                                     <input id="editNodeButton" type="submit" value="Change"/>
-                                    <input id="cancelNodeEditButton" type="button" value="Cancel" onclick="uiController.hideUI();"/>
+                                    <input id="cancelNodeEditButton" type="button" value="Cancel"
+                                           onclick="uiController.hideUI();"/>
                                 </td>
                             </tr>
                             </tbody>
@@ -191,7 +202,8 @@
         <div id="ui-jumpNode" class="centralizer">
             <div>
                 <div>
-                    <form onsubmit="uiController.handle.jumpNode(); return false;" class="inlineBlock">
+                    <form onsubmit="uiController.handle.jumpNode(); return false;"
+                          class="inlineBlock">
                         <table>
                             <thead>
                                 <tr>
@@ -208,7 +220,8 @@
                                 <tr>
                                     <td colspan="2">
                                         <input id="jumpNodeButton" type="submit" value="Jump"/>
-                                        <input id="cancelJumpNodeButton" type="button" value="Cancel" onclick="uiController.hideUI();"/>
+                                        <input id="cancelJumpNodeButton" type="button"
+                                               value="Cancel" onclick="uiController.hideUI();"/>
                                     </td>
                                 </tr>
                             </tbody>
@@ -224,7 +237,8 @@
                         <h1>About</h1>
                     </div>
                     <div>
-                        <input id="closeAbout" type="button" value="Close" onclick="uiController.hideUI();"/>
+                        <input id="closeAbout" type="button" value="Close"
+                               onclick="uiController.hideUI();"/>
                     </div>
                 </div>
             </div>

@@ -6,8 +6,7 @@ var config = require("./../config.js"),
 
 module.exports = function() {
 
-    var globals,
-        db;
+    var db;
 
     /**
      * @param parameters {{path: String, username: String, password: String, namespace: String}}
@@ -63,6 +62,12 @@ module.exports = function() {
 
     };
 
+    /**
+     * Get a list of sub-nodes by given pathArray.
+     *
+     * @param pathArray
+     * @param handler
+     */
     this.retrieveList = function(pathArray, handler) {
 
         db.retrieve({
@@ -72,6 +77,13 @@ module.exports = function() {
 
     };
 
+    /**
+     * Set node value.
+     *
+     * @param pathArray
+     * @param data
+     * @param handler
+     */
     this.setNode = function(pathArray, data, handler) {
 
         db.set({
@@ -82,6 +94,12 @@ module.exports = function() {
 
     };
 
+    /**
+     * Get node value.
+     *
+     * @param pathArray
+     * @param handler
+     */
     this.getNode = function(pathArray, handler) {
 
         db.get({
@@ -91,6 +109,12 @@ module.exports = function() {
 
     };
 
+    /**
+     * Delete node and all sub-nodes.
+     *
+     * @param pathArray
+     * @param handler
+     */
     this.kill = function(pathArray, handler) {
 
         db.kill({
@@ -100,17 +124,24 @@ module.exports = function() {
 
     };
 
+    /**
+     * Get about information.
+     *
+     * @param handler
+     */
     this.about = function(handler) {
 
         db.about(handler);
 
     };
 
+    /**
+     * Initialise when ready to connect to database.
+     */
     this.init = function() {
 
         try {
-            globals = GlobalsModule;
-            db = new globals.Cache();
+            db = new GlobalsModule.Cache();
         } catch (e) {
             console.error(e, "Cannot join globals module " + config.database.modulePath);
             process.exit(4);

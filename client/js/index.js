@@ -16,6 +16,11 @@ var Geometry = {
 
 };
 
+/**
+ * Block DOM event.
+ *
+ * @param e
+ */
 var blockEvent = function(e) {
     e.preventDefault();
     e.cancelBubble = true;
@@ -25,18 +30,8 @@ var blockEvent = function(e) {
     }
 };
 
-var Debugger = {
-
-    log: function(text) {
-
-        document.getElementById("debugger").innerHTML = text;
-
-    }
-
-};
-
 /**
- * GlobalsDB Admin interface.
+ * GlobalsDB Admin interface module.
  * @author ZitRo
  */
 var app = new function() {
@@ -51,7 +46,7 @@ var app = new function() {
         TREE_ROOT = null,
         manipulator,
 
-        CLIENT_VERSION = "0.9.1",
+        CLIENT_VERSION = "1.0.0",
 
         // enables handling action by application
         ACTION_HANDLERS_ON = true,
@@ -254,6 +249,7 @@ var app = new function() {
                         e.i++;
                         _this.scaleView((d - e.ld)/100);
                     }
+
                     e.ld = d;
 
                 }
@@ -285,6 +281,7 @@ var app = new function() {
                 e.scrolling = null;
 
                 var t = e.target;
+
                 do {
                     if (t.NODE_OBJECT) {
                         var node;
@@ -303,16 +300,10 @@ var app = new function() {
                                 /*)*/,
                                 len = Math.sqrt(Math.pow(t.NODE_OBJECT.getX() - node.getX(), 2) +
                                         Math.pow(t.NODE_OBJECT.getY() - node.getY(), 2));
+
                             e.scrolling.angle = dir;
                             e.ox = e.ox - Math.cos(dir)*len*VIEWPORT_SCALE;
                             e.oy = e.oy + Math.sin(dir)*len*VIEWPORT_SCALE;
-
-                            /*// @debug
-                            var el = document.createElement("DIV");
-                            el.className = "target";
-                            el.style.left = e.ox + "px";
-                            el.style.top = e.oy + "px";
-                            document.body.appendChild(el);*/
 
                         }
                     }
@@ -840,19 +831,6 @@ var app = new function() {
              */
             var updateFromModel = function() {
 
-                /*var fromIndex = Math.max(child.length - 1, 0),
-                    level = DATA_ADAPTER.getLevel(node.getPath(), INITIAL_ELEMENT_NUMBER, child[fromIndex]);
-
-                for (var i = 0; i < level.length; i++) {
-                    child[fromIndex + i] = level[i];
-                }
-
-                if (level.length + fromIndex - 1 > MAX_VISUAL_ELEMENTS/(PARENT_NODE?2:1)) {
-                    NODES_FREE_ALIGN = false;
-                }
-
-                resetExtraChild();*/
-
                 var fromIndex = SELECTED_INDEX - Math.ceil(MAX_VISUAL_ELEMENTS/2),
                     level = DATA_ADAPTER.getLevel(
                         node.getPath(),
@@ -1055,13 +1033,7 @@ var app = new function() {
                         (visualNodeProps.baseAngle || 0) + Math.PI
                             - ((mi > 1)?aAngle/2:0) + (i/(mi - 1 || 1))*aAngle - bAngle
                     ) || 0;
-                    /*if (visualNodeProps.baseAngle !== undefined) {
-                        angle = Geometry.normalizeAngle(visualNodeProps.baseAngle + Math.PI/2 + Math.PI*i/(mi - 1));
-                        dAngle = Math.PI/mi;
-                    } else {
-                        angle = 2*Math.PI*i/mi;
-                        dAngle = 2*Math.PI/mi;
-                    }*/
+
                     if (!beams[b].beam.getInitialRadius()) {
                         var r = Math.max(
                             beams[b].beam.getNode().getR()/Math.tan(dAngle/2),
@@ -1072,8 +1044,10 @@ var app = new function() {
                         }
                         beams[b].beam.setRadius(r);
                     }
+
                     beams[b].beam.setAngle(angle);
                     i++;
+
                 }
 
             };
@@ -1095,20 +1069,6 @@ var app = new function() {
                 for (var b in beams) {
                     if (!beams.hasOwnProperty(b)) continue;
                     d = beams[b].index - VISUAL_SELECTED_INDEX;
-//                    beams[b].beam.highlight(
-//                        (Math.round(SELECTED_INDEX) === beams[b].index)?
-//                            getAppropriateStateActionClassName():CSS_EMPTY_CLASS_NAME
-//                    ); // @improve
-//                    //if (!beams[b].beam.getInitialRadius()) {
-//                        beams[b].beam.setRadius(Math.max(
-//                            beams[b].beam.getNode().getR()/Math.tan(Math.PI*2/MAX_VISUAL_ELEMENTS),
-//                            beams[b].beam.getNode().getR() + node.getR() + MIN_NODES_DISTANCE
-//                        ));
-//                    //}
-//                    beams[b].beam.setZIndex(-Math.round(d*d) + 200);
-//                    beams[b].beam.setAngle(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2
-//                        + ((typeof visualNodeProps.baseAngle === "number")?
-//                            visualNodeProps.baseAngle:Math.PI) + Math.PI);
                     beams[b].beam.updateGeometry(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2
                         + ((typeof visualNodeProps.baseAngle === "number")?
                             visualNodeProps.baseAngle:Math.PI) + Math.PI,
@@ -1325,7 +1285,6 @@ var app = new function() {
         };
 
         /**
-         * @deprecated
          * @param direction
          */
         this.setAngle = function(direction) {
@@ -1337,7 +1296,6 @@ var app = new function() {
         };
 
         /**
-         * @deprecated
          * @param radius
          */
         this.setRadius = function(radius) {
@@ -1799,8 +1757,9 @@ var app = new function() {
      */
     this.getDescription = function(callback) {
 
-        callback("<h1>About</h1><h3>GlobalsDB Admin client</h3>" +
-            "<div>VERSION: " + CLIENT_VERSION + "</div>");
+        callback("<h1>About</h1><hr/><h3>" +
+            "<a target=\"_blank\" href=\"http://zitros.github.io/globalsDB-Admin-NodeJS\">" +
+            "GlobalsDB Admin client</a></h3><div>VERSION: " + CLIENT_VERSION + "</div>");
 
         server.send({
             request: "about"

@@ -11,97 +11,15 @@ var dataAdapter = new function() {
 
     };
 
-    var dataTree = { // @debug
+    var dataTree = {
 
         root: {
-            ___$: "[ROOT]",
-            control: {
-                move: {
-                    ___$: 1
-                },
-                test: 1,
-                get: 1,
-                set: 1,
-                delete: 1
-            },
-            people: {
-                John: {
-                    name: "John",
-                    age: "18",
-                    gender: 1
-                },
-                Lizzie: {
-                    name: "Lizzie",
-                    age: "19",
-                    gender: 2
-                },
-                Karin: {
-                    name: "Karin",
-                    age: "16",
-                    gender: 2
-                },
-                Roger: {
-                    name: "Roger",
-                    age: "18",
-                    gender: 1
-                },
-                Karl: {
-                    name: "Karl",
-                    age: "18",
-                    gender: 1
-                },
-                Klara: {
-                    name: "Klara",
-                    age: "40",
-                    gender: 2
-                },
-                Tree: {
-                    name: "Tree",
-                    age: "90",
-                    gender: 0
-                },
-                Max: {
-                    name: "Max",
-                    age: "14",
-                    gender: 1
-                },
-                Jim: {
-                    name: "Jim",
-                    age: "20",
-                    gender: 1
-                },
-                Eli: {
-                    name: "Eli",
-                    age: "27",
-                    gender: 2
-                },
-                Tod: {
-                    name: "Tod",
-                    age: "20",
-                    gender: 1
-                },
-                Marco: {
-                    name: "Marco",
-                    age: "28",
-                    gender: 1
-                }
-            },
-            loot: {
-                box: "100",
-                knife: "100"
-            },
-            actions: {
-                push: "1",
-                pop: "2",
-                task: "3",
-                make: "4"
-            },
-            branches: {
-                master: {
-                    color: "red",
-                    weight: 100
-                }
-            }
+            ___$: "Welcome!",
+            Welcome: "Log in",
+            To: "",
+            The: "",
+            GlobalsDB: "Please",
+            Admin: ""
         }
 
     };
