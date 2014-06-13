@@ -19,6 +19,7 @@ html, body {
     color: white;
     font-family: "PT Sans Narrow", serif;
     font-size: 16pt;
+	min-width: 600px;
 }
 
 a {
