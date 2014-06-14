@@ -4,10 +4,66 @@ var server = new function() {
         CONNECTED = false,
         connectionHandler,
         LOG_DATA = false,
-        REQUESTS_LIMIT = 2, // @todo
+        REQUESTS_LIMIT = 4,
+        REQUESTS_IN_PROGRESS = 0,
+        REQUEST_TIMEOUT = 4000,
         handlers = {};
 
-    var requestStack = []; // stack with requesting objects
+    var requestStack = [], // stack with requesting objects
+        requestSentStack = [];
+
+    var stackSend = function(data) {
+
+        if (!data.__id) {
+            ws.send(JSON.stringify(data));
+            return;
+        }
+
+        requestStack.push({
+            req: data
+        });
+        sendStack();
+
+    };
+
+    var clearSentStack = function() {
+
+        var d = new Date();
+
+        for (var i = 0; i < requestSentStack.length; i++) {
+            if (d - requestSentStack[i].timestamp > REQUEST_TIMEOUT - 25) {
+                console.warn("Dead request", requestSentStack[i].req);
+                if (handlers.hasOwnProperty(requestSentStack[i].req.__id)) {
+                    handlers[requestSentStack[i].req.__id]({
+                        error: 1,
+                        reason: "Dead request"
+                    });
+                    delete handlers[requestSentStack[i].req.__id];
+                }
+                clearTimeout(requestSentStack[i].timeout);
+                requestSentStack.splice(i, 1);
+                REQUESTS_IN_PROGRESS--;
+            }
+        }
+
+    };
+
+    var sendStack = function() { // __id guaranteed
+
+        uiController.showLoadingAnimation(requestStack.length !== 0);
+
+        for (var n = REQUESTS_IN_PROGRESS, i = 0; n < REQUESTS_LIMIT && i < requestStack.length; n++, i++) {
+            var req = requestStack.splice(0, 1)[0];
+            ws.send(JSON.stringify(req.req));
+            requestSentStack.push({
+                req: req.req,
+                timeout: setTimeout(clearSentStack, REQUEST_TIMEOUT),
+                timestamp: new Date()
+            });
+            REQUESTS_IN_PROGRESS++;
+        }
+
+    };
 
     var generateHandlerID = function() {
 
@@ -58,9 +114,8 @@ var server = new function() {
             delete handlers[i];
         }
 
+        REQUESTS_IN_PROGRESS = 0;
         callHandler(CONNECTED = false);
-
-        //app.handle.connectionClose();
 
     };
 
@@ -74,7 +129,7 @@ var server = new function() {
 
         try {
             data = JSON.parse(data.data);
-        } catch (e) { console.error("Error parsing server data.", data.data); return }
+        } catch (e) { console.error("Error parsing server data.", data.data); return; }
 
         if (data.__id && handlers.hasOwnProperty(data.__id)) {
             if (LOG_DATA) console.log("<< " + data.__id + " <<", data);
@@ -82,6 +137,17 @@ var server = new function() {
             delete handlers[data.__id];
         } else {
             if (LOG_DATA) console.log("<< [not handled] <<", data);
+        }
+
+        if (data.__id) {
+            REQUESTS_IN_PROGRESS--;
+            sendStack();
+            for (var i = 0; i < requestSentStack.length; i++) {
+                if (requestSentStack[i].req.__id == data.__id) {
+                    clearTimeout(requestSentStack[i].timeout);
+                    requestSentStack.splice(i, 1);
+                }
+            }
         }
 
     };
@@ -95,7 +161,9 @@ var server = new function() {
             object.__id = h;
             if (LOG_DATA) console.log(">> " + h + " >>", object);
         } else if (LOG_DATA) console.log(">>", object);
-        ws.send(JSON.stringify(object));
+
+        stackSend(object);
+
         return 1;
 
     };

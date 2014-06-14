@@ -16,6 +16,11 @@ var Geometry = {
 
 };
 
+/**
+ * Block DOM event.
+ *
+ * @param e
+ */
 var blockEvent = function(e) {
     e.preventDefault();
     e.cancelBubble = true;
@@ -26,7 +31,7 @@ var blockEvent = function(e) {
 };
 
 /**
- * GlobalsDB Admin interface.
+ * GlobalsDB Admin interface module.
  * @author ZitRo
  */
 var app = new function() {
@@ -41,7 +46,7 @@ var app = new function() {
         TREE_ROOT = null,
         manipulator,
 
-        VERSION = "0.8.1",
+        CLIENT_VERSION = "1.0.0",
 
         // enables handling action by application
         ACTION_HANDLERS_ON = true,
@@ -66,6 +71,8 @@ var app = new function() {
         MIN_NODES_DISTANCE = 110, // minimal distance between nodes
         BASE_NODE_RADIUS = 140,
         TREE_NODE_RADIUS = 80,
+
+        VIEW_UPDATES_PER_STEP = 0,
 
         TRIGGER_ADD = 0,
         TRIGGER_JUMP = 1;
@@ -242,6 +249,7 @@ var app = new function() {
                         e.i++;
                         _this.scaleView((d - e.ld)/100);
                     }
+
                     e.ld = d;
 
                 }
@@ -273,6 +281,7 @@ var app = new function() {
                 e.scrolling = null;
 
                 var t = e.target;
+
                 do {
                     if (t.NODE_OBJECT) {
                         var node;
@@ -291,16 +300,10 @@ var app = new function() {
                                 /*)*/,
                                 len = Math.sqrt(Math.pow(t.NODE_OBJECT.getX() - node.getX(), 2) +
                                         Math.pow(t.NODE_OBJECT.getY() - node.getY(), 2));
+
                             e.scrolling.angle = dir;
                             e.ox = e.ox - Math.cos(dir)*len*VIEWPORT_SCALE;
                             e.oy = e.oy + Math.sin(dir)*len*VIEWPORT_SCALE;
-
-                            /*// @debug
-                            var el = document.createElement("DIV");
-                            el.className = "target";
-                            el.style.left = e.ox + "px";
-                            el.style.top = e.oy + "px";
-                            document.body.appendChild(el);*/
 
                         }
                     }
@@ -613,12 +616,12 @@ var app = new function() {
 
                 var search = {
                         name: "jump to node",
-                        value: "<img class=\"jumpIcon\"/>",
+                        value: "<img src=\"img/jumpIcon.png\" class=\"jumpIcon\"/>",
                         trigger: TRIGGER_JUMP
                     },
                     add = {
                         name: "add node",
-                        value: "<img class=\"addIcon\"/>",
+                        value: "<img src=\"img/addIcon.png\" class=\"addIcon\"/>",
                         trigger: TRIGGER_ADD
                     };
 
@@ -828,19 +831,6 @@ var app = new function() {
              */
             var updateFromModel = function() {
 
-                /*var fromIndex = Math.max(child.length - 1, 0),
-                    level = DATA_ADAPTER.getLevel(node.getPath(), INITIAL_ELEMENT_NUMBER, child[fromIndex]);
-
-                for (var i = 0; i < level.length; i++) {
-                    child[fromIndex + i] = level[i];
-                }
-
-                if (level.length + fromIndex - 1 > MAX_VISUAL_ELEMENTS/(PARENT_NODE?2:1)) {
-                    NODES_FREE_ALIGN = false;
-                }
-
-                resetExtraChild();*/
-
                 var fromIndex = SELECTED_INDEX - Math.ceil(MAX_VISUAL_ELEMENTS/2),
                     level = DATA_ADAPTER.getLevel(
                         node.getPath(),
@@ -1043,13 +1033,7 @@ var app = new function() {
                         (visualNodeProps.baseAngle || 0) + Math.PI
                             - ((mi > 1)?aAngle/2:0) + (i/(mi - 1 || 1))*aAngle - bAngle
                     ) || 0;
-                    /*if (visualNodeProps.baseAngle !== undefined) {
-                        angle = Geometry.normalizeAngle(visualNodeProps.baseAngle + Math.PI/2 + Math.PI*i/(mi - 1));
-                        dAngle = Math.PI/mi;
-                    } else {
-                        angle = 2*Math.PI*i/mi;
-                        dAngle = 2*Math.PI/mi;
-                    }*/
+
                     if (!beams[b].beam.getInitialRadius()) {
                         var r = Math.max(
                             beams[b].beam.getNode().getR()/Math.tan(dAngle/2),
@@ -1060,8 +1044,10 @@ var app = new function() {
                         }
                         beams[b].beam.setRadius(r);
                     }
+
                     beams[b].beam.setAngle(angle);
                     i++;
+
                 }
 
             };
@@ -1083,20 +1069,15 @@ var app = new function() {
                 for (var b in beams) {
                     if (!beams.hasOwnProperty(b)) continue;
                     d = beams[b].index - VISUAL_SELECTED_INDEX;
-                    beams[b].beam.highlight(
-                        (Math.round(SELECTED_INDEX) === beams[b].index)?
-                            getAppropriateStateActionClassName():CSS_EMPTY_CLASS_NAME
-                    ); // @improve
-                    //if (!beams[b].beam.getInitialRadius()) {
-                        beams[b].beam.setRadius(Math.max(
-                            beams[b].beam.getNode().getR()/Math.tan(Math.PI*2/MAX_VISUAL_ELEMENTS),
-                            beams[b].beam.getNode().getR() + node.getR() + MIN_NODES_DISTANCE
-                        ));
-                    //}
-                    beams[b].beam.setZIndex(-Math.round(d*d) + 200);
-                    beams[b].beam.setAngle(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2
+                    beams[b].beam.updateGeometry(Math.atan(Math.PI/1.4*d*2/MAX_VISUAL_ELEMENTS * 2)*2
                         + ((typeof visualNodeProps.baseAngle === "number")?
-                            visualNodeProps.baseAngle:Math.PI) + Math.PI);
+                            visualNodeProps.baseAngle:Math.PI) + Math.PI,
+                        Math.max(
+                                beams[b].beam.getNode().getR()/Math.tan(Math.PI*2/MAX_VISUAL_ELEMENTS),
+                                beams[b].beam.getNode().getR() + node.getR() + MIN_NODES_DISTANCE
+                        ),
+                            -Math.round(d*d) + 200, (Math.round(SELECTED_INDEX) === beams[b].index)?
+                            getAppropriateStateActionClassName():CSS_EMPTY_CLASS_NAME);
                 }
 
             };
@@ -1168,6 +1149,8 @@ var app = new function() {
             }
 
             element.style.width = element.style.height = visualNodeProps.r*2 + "px";
+
+            VIEW_UPDATES_PER_STEP += 1;
 
         };
 
@@ -1301,6 +1284,9 @@ var app = new function() {
 
         };
 
+        /**
+         * @param direction
+         */
         this.setAngle = function(direction) {
 
             visualBeamProps.angle = Geometry.normalizeAngle(direction);
@@ -1309,6 +1295,9 @@ var app = new function() {
 
         };
 
+        /**
+         * @param radius
+         */
         this.setRadius = function(radius) {
 
             if (!visualBeamProps.initialRadius) visualBeamProps.initialRadius = radius;
@@ -1318,10 +1307,35 @@ var app = new function() {
 
         };
 
+        /**
+         * @deprecated
+         * @param z
+         */
         this.setZIndex = function(z) {
 
             if (element) element.style.zIndex = 11 + z;
             if (node) node.setZIndex(12 + z);
+
+        };
+
+        /**
+         * Completely updates beam.
+         * @param angle
+         * @param radius
+         * @param zIndex
+         */
+        this.updateGeometry = function(angle, radius, zIndex, CSSClassName) {
+
+            visualBeamProps.angle = Geometry.normalizeAngle(angle);
+            node.setBaseAngle(Geometry.normalizeAngle(visualBeamProps.angle + Math.PI));
+            if (!visualBeamProps.initialRadius) visualBeamProps.initialRadius = radius;
+            visualBeamProps.r = radius;
+            if (element) element.style.zIndex = 11 + zIndex;
+            if (node) node.setZIndex(12 + zIndex);
+            element.className = CSS_CLASS_NAME_LINK + " " + CSSClassName;
+            if (node) node.highlight(CSSClassName);
+
+            updateView();
 
         };
 
@@ -1348,6 +1362,7 @@ var app = new function() {
         /**
          * Make link glow (highlight link).
          *
+         * @deprecated
          * @param CSSClassName {Boolean}
          */
         this.highlight = function(CSSClassName) {
@@ -1411,6 +1426,8 @@ var app = new function() {
 
             }
 
+            VIEW_UPDATES_PER_STEP += 1;
+
         };
 
         var updateView = function() {
@@ -1419,6 +1436,7 @@ var app = new function() {
                 parentNode.getX() + visualBeamProps.r*Math.cos(visualBeamProps.angle),
                 parentNode.getY() + visualBeamProps.r*Math.sin(visualBeamProps.angle)
             );
+
             updateElementPosition();
 
         };
@@ -1676,17 +1694,12 @@ var app = new function() {
 
             if (!TREE_ROOT) return;
             var path = TREE_ROOT.getCurrentPath();
-            console.log(path);
             if (!path.length) return;
             var node = TREE_ROOT.getNodeByPath(path.slice(1));
-            console.log(node);
             if (!node) return;
             node = node.childController.getCurrentNode();
-            console.log(node);
             if (!node) return;
-            console.log(node.getIndex(), name);
             if (node.getIndex() !== name) return;
-            console.log("OK");
 
             dataAdapter.setNode(path, name, value, function(success) {
                 if (!success) {
@@ -1744,7 +1757,9 @@ var app = new function() {
      */
     this.getDescription = function(callback) {
 
-        callback("<h1>About</h1><h4>GlobalsDB Admin client v" + VERSION + "</h4>");
+        callback("<h1>About</h1><hr/><h3>" +
+            "<a target=\"_blank\" href=\"http://zitros.github.io/globalsDB-Admin-NodeJS\">" +
+            "GlobalsDB Admin client</a></h3><div>VERSION: " + CLIENT_VERSION + "</div>");
 
         server.send({
             request: "about"
@@ -1752,6 +1767,25 @@ var app = new function() {
             if (data && data.result && !data.error) {
                 callback(data.result.result);
             }
+        });
+
+        server.send({
+            request: "getManifest"
+        }, function(data) {
+
+            var s = "<h3>GlobalsDB Admin NodeJS Server adapter</h3>" +
+                "<div style=\"display: inline-block; margin: 0 auto; text-align: left;\">";
+            data = data.manifest || {};
+
+            for (var p in data) {
+                if (!data.hasOwnProperty(p)) continue;
+                s += "<div>" + p + ": " + data[p] + "</div>";
+            }
+
+            s += "</div>";
+
+            callback(s);
+
         });
 
     };

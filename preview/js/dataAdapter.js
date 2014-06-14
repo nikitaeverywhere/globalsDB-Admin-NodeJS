@@ -14,7 +14,13 @@ var dataAdapter = new function() {
     var dataTree = { // @debug
 
         root: {
-            ___$: "[ROOT]",
+            ___$: "GlobalsDB Admin<br/><br/>Welcome to GlobalsDB Admin demo!<br/>" +
+                "Use arrow keys UP and DOWN to choose <br/>" +
+                "node, LEFT and RIGHT to choose action,</br>" +
+                "ENTER to select, BACKSPACE to back.<br/>" +
+                "Also you can click and drag nodes.<br/>" +
+                "Visit <a href=\"http://zitros.github.io/globalsDB-Admin-NodeJS\">" +
+                "project's homepage</a> for details.<br/><br/>2014 © Preview",
             control: {
                 move: {
                     ___$: 1
@@ -417,7 +423,8 @@ var dataAdapter = new function() {
             obj = dataTree,
             arr = [],
             u,
-            lastProperty = "";
+            lastProperty = "",
+            jumped = false;
 
         if (!number) number = Infinity;
 
@@ -428,6 +435,13 @@ var dataAdapter = new function() {
         } while (path[i] && obj);
 
         for (u in obj) { // return object properties list
+            if (obj[JUMPER_PREFIX]) {
+                if (!jumped) {
+                    if (u == obj[JUMPER_PREFIX]) {
+                        jumped = true;
+                    } else continue;
+                }
+            }
             if (!obj.hasOwnProperty(u) || u === VALUE_PREFIX || u === JUMPER_PREFIX) continue;
             if (from) { if (u !== from) continue; else from = false; }
             if (number > 0) { number--; arr.push(u); lastProperty = u; } else { break; }
@@ -564,10 +578,10 @@ var dataAdapter = new function() {
 
         if (!nodeName) {
             if (node.hasOwnProperty(JUMPER_PREFIX)) delete node[JUMPER_PREFIX];
-            clearObject(pathArray);
+            //clearObject(pathArray);
             _this.childUpdated(pathArray.slice(1));
         } else {
-            clearObject(pathArray);
+            //clearObject(pathArray);
             node = getTreeObjectByPath(pathArray);
             node[JUMPER_PREFIX] = nodeName;
             _this.childUpdated(pathArray.slice(1));
