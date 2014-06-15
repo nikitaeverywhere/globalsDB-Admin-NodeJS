@@ -14,13 +14,13 @@ var dataAdapter = new function() {
     var dataTree = { // @debug
 
         root: {
-            ___$: "GlobalsDB Admin<br/><br/>Welcome to GlobalsDB Admin demo!<br/>" +
+            ___$: "<span style=\"word-break: normal; font-size: 14px;\">GlobalsDB Admin<br/><br/>Welcome to GlobalsDB Admin demo!<br/>" +
                 "Use arrow keys UP and DOWN to choose <br/>" +
                 "node, LEFT and RIGHT to choose action,</br>" +
                 "ENTER to select, BACKSPACE to back.<br/>" +
                 "Also you can click and drag nodes.<br/>" +
                 "Visit <a href=\"http://zitros.github.io/globalsDB-Admin-NodeJS\">" +
-                "project's homepage</a> for details.<br/><br/>2014 © Preview",
+                "project's homepage</a> for details.<br/><br/>2014 © Preview</span>",
             control: {
                 move: {
                     ___$: 1
