@@ -194,6 +194,10 @@ table tr td {
     background-image: url(../img/icon/preview.png);
 }
 
+#linkClient {
+    background-image: url(../img/icon/connect.png);
+}
+
 #forkLink {
     position: absolute;
     right: 0;
