@@ -239,16 +239,16 @@ var uiController = new function() {
             actions.connect.setWaitingState(true);
             _this.hideUI();
 
-            server.send(data, function(responce) {
+            server.send(data, function(response) {
 
                 actions.connect.setWaitingState(false);
-                if (responce && responce.error === 0) {
+                if (response && response.error === 0) {
 
                     _this.hideUI();
                     app.resetTreeRoot(null, data.namespace, data.username);
 
                 } else {
-                    _this.showMessage("Login error", "Unable to login. Server reason: " + (responce.reason || "[none]"));
+                    _this.showMessage("Login error", "Unable to login. Server reason: " + (response.reason || "[none]"));
                     _this.switchLoginForm();
                 }
 

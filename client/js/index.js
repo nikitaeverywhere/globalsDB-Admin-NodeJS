@@ -324,8 +324,6 @@ var app = new function() {
 
                 blockEvent(e.event);
                 stopUpdate();
-                //alert(e.i);
-                //console.log("scroll end");
 
             };
 

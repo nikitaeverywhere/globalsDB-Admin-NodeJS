@@ -200,7 +200,7 @@ module.exports = new function() {
                 request: "open",
                 data: {
                     path: config.database.databases[data.database] || "",
-                    login: data.username,
+                    username: data.username,
                     password: data.password,
                     namespace: data.namespace
                 }
