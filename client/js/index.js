@@ -1726,8 +1726,9 @@ var app = new function() {
      *
      * @param adapter {object=}
      * @param baseName {string=}
+     * @param username {string=}
      */
-    this.resetTreeRoot = function(adapter, baseName) {
+    this.resetTreeRoot = function(adapter, baseName, username) {
 
         if (TREE_ROOT) {
             TREE_ROOT.remove();
@@ -1737,7 +1738,7 @@ var app = new function() {
             DATA_ADAPTER = adapter;
         }
 
-        DATA_ADAPTER.reset(baseName);
+        DATA_ADAPTER.reset(username + ": " + baseName);
 
         TREE_ROOT = new TreeRoot(baseName);
 

@@ -36,7 +36,6 @@ module.exports = function() {
         },
 
         getLevel: function(data, handler) {
-            var uid = Math.random();
             db.getLevel({
                 pathArray: data.pathArray || [],
                 lo: data.lo || "",
@@ -56,7 +55,8 @@ module.exports = function() {
                     error: error,
                     result: result
                 });
-            })
+
+            });
         },
 
         getNode: function(data, handler) {

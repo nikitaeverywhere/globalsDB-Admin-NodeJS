@@ -245,7 +245,7 @@ var uiController = new function() {
                 if (responce && responce.error === 0) {
 
                     _this.hideUI();
-                    app.resetTreeRoot(null, data.username);
+                    app.resetTreeRoot(null, data.namespace, data.username);
 
                 } else {
                     _this.showMessage("Login error", "Unable to login. Server reason: " + (responce.reason || "[none]"));

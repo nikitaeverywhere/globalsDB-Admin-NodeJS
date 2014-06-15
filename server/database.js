@@ -53,7 +53,7 @@ module.exports = function() {
             }, handler);
         } else {
             db.retrieve({
-                global: options.pathArray.splice(0, 1),
+                global: options.pathArray.splice(0, 1)[0],
                 subscripts: options.pathArray,
                 lo: options.lo,
                 max: options.max
@@ -71,7 +71,7 @@ module.exports = function() {
     this.retrieveList = function(pathArray, handler) {
 
         db.retrieve({
-            global: pathArray.splice(0, 1),
+            global: pathArray.splice(0, 1)[0],
             subscripts: pathArray
         }, handler);
 
@@ -87,7 +87,7 @@ module.exports = function() {
     this.setNode = function(pathArray, data, handler) {
 
         db.set({
-            global: pathArray.splice(0, 1),
+            global: pathArray.splice(0, 1)[0],
             subscripts: pathArray,
             data: data
         }, handler);
@@ -103,7 +103,7 @@ module.exports = function() {
     this.getNode = function(pathArray, handler) {
 
         db.get({
-            global: pathArray.splice(0, 1),
+            global: pathArray.splice(0, 1)[0],
             subscripts: pathArray
         }, handler);
 
@@ -118,7 +118,7 @@ module.exports = function() {
     this.kill = function(pathArray, handler) {
 
         db.kill({
-            global: pathArray.splice(0, 1),
+            global: pathArray.splice(0, 1)[0],
             subscripts: pathArray
         }, handler);
 
