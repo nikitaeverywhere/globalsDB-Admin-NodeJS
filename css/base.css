@@ -223,6 +223,10 @@ table tr td {
     z-index: 1;
 }
 
+.littleHint {
+    font-size: 12px;
+}
+
 /****************************************************/
 .img-prev1 {
     max-width: 40%;
