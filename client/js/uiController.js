@@ -12,8 +12,11 @@ var uiController = new function() {
             messageHead: null,
             messageBody: null,
             editNode: null,
+            copyNode: null,
             jumpNode: null,
-            about: null
+            about: null,
+            themesBlock: null,
+            themeLink: null
         },
         FIELDS = { // @autofill
             connectHostname: null,
@@ -29,6 +32,9 @@ var uiController = new function() {
             addNodeValue: null,
             editNodeName: null,
             editNodeValue: null,
+            copySourcePath: null,
+            copyDestinationPathPart: null,
+            copyDestinationPathNode: null,
             jumpNodeName: null,
             aboutField: null
         };
@@ -69,7 +75,8 @@ var uiController = new function() {
 
     var showLoadingAnimation = function(enable) {
 
-        ELEMENTS.infoBar.innerHTML = (enable)?"<img src=\"img/loading-black.gif\"/>":"";
+        ELEMENTS.infoBar.innerHTML = (enable)?"<img class=\"loadingImage\" " +
+            "src=\"img/loading-black.gif\"/>":"";
 
     };
 
@@ -123,6 +130,16 @@ var uiController = new function() {
         _this.showUI();
         targetElement(ELEMENTS.editNode);
         timeFocus(FIELDS.editNodeValue);
+
+    };
+
+    this.switchCopyNodeForm = function(fromPath, toPathPart) {
+
+        FIELDS.copySourcePath.innerHTML = fromPath;
+        FIELDS.copyDestinationPathPart.innerHTML = toPathPart;
+        _this.showUI();
+        targetElement(ELEMENTS.copyNode);
+        timeFocus(FIELDS.copyDestinationPathNode);
 
     };
 
@@ -278,6 +295,13 @@ var uiController = new function() {
 
         },
 
+        copyNode: function() {
+
+            _this.hideUI();
+            app.handle.copyNode(FIELDS.copyDestinationPathNode.value);
+
+        },
+
         editNode: function() {
 
             var name = FIELDS.editNodeName.value,
@@ -322,6 +346,34 @@ var uiController = new function() {
 
     };
 
+    this.updateSettings = function() {
+
+        // update theme settings
+
+        var theme = localStorage.getItem("settings-theme") || THEMES[0] || "classic",
+            setUp = ELEMENTS.themesBlock.innerHTML.indexOf(">") > 0;
+
+        if (!setUp) for (var i in THEMES) {
+            ELEMENTS.themesBlock.innerHTML += "<label onclick=\"uiController.updateSettings();\">" +
+                "<input type=\"radio\" name=\"settings-" +
+                "theme\" value=\"" + THEMES[i] + "\"/" + ((theme === THEMES[i])?" checked":"") +
+                "> " + THEMES[i] + "</label>&nbsp; ";
+        }
+
+        var els = document.getElementsByName("settings-theme"), e;
+
+        for (e in els) {
+            if (els[e].checked) {
+                theme = els[e].value;
+            }
+        }
+
+        ELEMENTS.themeLink.setAttribute("href", "css/theme-" + theme + ".css");
+        document.body.appendChild(e = document.createElement("DIV")); e.parentNode.removeChild(e);
+        localStorage.setItem("settings-theme", theme);
+
+    };
+
     this.init = function() {
 
         UI_ELEMENT = document.getElementById("ui");
@@ -332,9 +384,12 @@ var uiController = new function() {
         ELEMENTS.messageHead = document.getElementById("ui-message-head");
         ELEMENTS.messageBody = document.getElementById("ui-message-body");
         ELEMENTS.addNode = document.getElementById("ui-addNode");
+        ELEMENTS.copyNode = document.getElementById("ui-copyNode");
         ELEMENTS.editNode = document.getElementById("ui-editNode");
         ELEMENTS.jumpNode = document.getElementById("ui-jumpNode");
         ELEMENTS.about = document.getElementById("ui-about");
+        ELEMENTS.themesBlock = document.getElementById("themesBlock");
+        ELEMENTS.themeLink = document.getElementById("themeLink");
 
         for (var i in FIELDS) {
             if (!FIELDS.hasOwnProperty(i)) continue;
@@ -346,6 +401,8 @@ var uiController = new function() {
         if (document.addEventListener) {
             document.addEventListener("focus", onElementFocused, true);
         }
+
+        _this.updateSettings();
 
         initElements();
 

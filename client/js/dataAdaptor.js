@@ -1,4 +1,4 @@
-var dataAdapter = new function() {
+var dataAdaptor = new function() {
 
     var VALUE_PREFIX = "___$", // special property prefix to store node value in JS object for GlobalsDB database.
         JUMPER_PREFIX = "___J",
@@ -312,6 +312,45 @@ var dataAdapter = new function() {
     };
 
     /**
+     * Copies source node content to destination path.
+     *
+     * @param {Array} sourcePathArray
+     * @param {Array} destinationPathArray
+     * @param {function=} handler
+     */
+    this.copyNode = function(sourcePathArray, destinationPathArray, handler) {
+
+        var realSrcPathArr = sourcePathArray.slice(1),
+            realDestPathArr = destinationPathArray.slice(1);
+
+        server.send({
+            request: "copyNode",
+            data: {
+                fromPathArray: realSrcPathArr,
+                toPathArray: realDestPathArr
+            }
+        }, function(response) {
+
+            console.log(response);
+
+            if (response && !response.error) {
+
+                updateTreeSubLevel(destinationPathArray.slice(0, destinationPathArray.length - 1),
+                    destinationPathArray[destinationPathArray.length - 1]);
+                _this.childUpdated(realDestPathArr.slice(0, realDestPathArr.length - 1));
+
+                if (typeof handler === "function") handler(true);
+
+            } else {
+                console.log("Wrong response", response);
+                if (typeof handler === "function") handler(false);
+            }
+
+        });
+
+    };
+
+    /**
      * Deletes node and it's child within given path.
      *
      * @param {Array} pathArray - path to node to delete.
@@ -339,14 +378,8 @@ var dataAdapter = new function() {
 
     };
 
-    this.getDataTree = function() {
-
-        return dataTree;
-
-    };
-
     /**
-     * Jumper is the special floor-limiter, which forces dataAdapter to request data from server
+     * Jumper is the special floor-limiter, which forces dataAdaptor to request data from server
      * beginning from given node. If there are a huge number of nodes, jumper is required to get
      * the last node faster.
      *

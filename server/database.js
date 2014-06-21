@@ -1,5 +1,5 @@
 /**
- * GlobalsDB module adapter.
+ * GlobalsDB module adaptor.
  */
 var config = require("./../config.js"),
     GlobalsModule = require(config.database.modulePath);
@@ -90,6 +90,21 @@ module.exports = function() {
             global: pathArray.splice(0, 1)[0],
             subscripts: pathArray,
             data: data
+        }, handler);
+
+    };
+
+    this.copy = function(fromPathArray, toPathArray, handler) {
+
+        db.merge({
+            to: {
+                global: toPathArray.splice(0, 1)[0],
+                subscripts: toPathArray
+            },
+            from: {
+                global: fromPathArray.splice(0, 1)[0],
+                subscripts: fromPathArray
+            }
         }, handler);
 
     };

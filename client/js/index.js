@@ -17,21 +17,16 @@ var Geometry = {
 };
 
 /**
- * Block DOM event.
- *
- * @param e
+ * @type {string[]}
  */
-var blockEvent = function(e) {
-    e.preventDefault();
-    e.cancelBubble = true;
-    if (e.preventDefault) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-};
+var THEMES = [
+    "classic",
+    "sketch",
+    "sunrise"
+];
 
 /**
- * GlobalsDB Admin interface module.
+ * GlobalsDB Admin module.
  * @author ZitRo
  */
 var app = new function() {
@@ -42,11 +37,11 @@ var app = new function() {
             TREE_PATH: null
         },
         USE_HARDWARE_ACCELERATION = false,
-        DATA_ADAPTER = dataAdapter,
+        DATA_ADAPTER = dataAdaptor,
         TREE_ROOT = null,
         manipulator,
 
-        CLIENT_VERSION = "1.0.0",
+        CLIENT_VERSION = "1.2.0",
 
         // enables handling action by application
         ACTION_HANDLERS_ON = true,
@@ -59,13 +54,15 @@ var app = new function() {
 
         CSS_CLASS_NAME_SELECT = "selected",
         CSS_CLASS_NAME_DELETE = "deleting",
+        CSS_CLASS_NAME_COPY = "copying",
         CSS_CLASS_NAME_EDIT = "editing",
         CSS_EMPTY_CLASS_NAME = "",
 
         NODE_STATE_ACTION_SELECT = 0,
         NODE_STATE_ACTION_EDIT = 1,
-        NODE_STATE_ACTION_DELETE = 2,
-        NODE_STATE_ACTIONS = 3,
+        NODE_STATE_ACTION_COPY = 2,
+        NODE_STATE_ACTION_DELETE = 3,
+        NODE_STATE_ACTIONS = 4,
         NODE_MAX_VISUAL_ELEMENTS = 15,
 
         MIN_NODES_DISTANCE = 110, // minimal distance between nodes
@@ -74,8 +71,26 @@ var app = new function() {
 
         VIEW_UPDATES_PER_STEP = 0,
 
+        COPY_NODE_PATH_DESTINATION = null,
+        COPY_NODE_PATH_TARGET = null,
+
         TRIGGER_ADD = 0,
-        TRIGGER_JUMP = 1;
+        TRIGGER_JUMP = 1,
+        TRIGGER_PASTE = 2;
+
+    /**
+     * Block DOM event.
+     *
+     * @param e
+     */
+    var blockEvent = function(e) {
+        e.preventDefault();
+        e.cancelBubble = true;
+        if (e.preventDefault) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
 
     var setElements = function() {
 
@@ -468,7 +483,7 @@ var app = new function() {
      * Node element.
      *
      * @param parentNode {Node} Parent node
-     * @param initialIndex {Array|string} Node index. In case of string, node will try require data in data adapter with it's path.
+     * @param initialIndex {Array|string} Node index. In case of string, node will try require data in data adaptor with it's path.
      *  In case of object, node will get new properties.
      * @param baseAngle
      * @param {Number=} startX
@@ -602,6 +617,7 @@ var app = new function() {
                 SELECTED_INDEX = 0,
                 VISUAL_SELECTED_INDEX = 0, // for animation
                 updateViewInterval = 0,
+                PASTE_CONTROL = false, // additional variable to define if paste control was added
                 NODES_FREE_ALIGN = true; // shows if place nodes free (not to fix them with selector)
 
             /**
@@ -611,25 +627,42 @@ var app = new function() {
 
                 child[-1] = undefined;
                 child[-2] = undefined;
+                child[-3] = undefined;
 
                 var search = {
-                        name: "jump to node",
+                        name: "jump",
                         value: "<img src=\"img/jumpIcon.png\" class=\"jumpIcon\"/>",
                         trigger: TRIGGER_JUMP
                     },
                     add = {
-                        name: "add node",
+                        name: "add",
                         value: "<img src=\"img/addIcon.png\" class=\"addIcon\"/>",
                         trigger: TRIGGER_ADD
+                    },
+                    paste = {
+                        name: "paste",
+                        value: "<img src=\"img/copyIcon.png\" class=\"copyIcon\">",
+                        trigger: TRIGGER_PASTE
                     };
 
                 if (NODES_FREE_ALIGN) {
                     ADDITIONAL_CHILD = 1;
                     child[-1] = add;
+                    child[-2] = paste;
                 } else {
                     ADDITIONAL_CHILD = 2;
                     child[-1] = add;
                     child[-2] = search;
+                    child[-3] = paste;
+                }
+
+                if (COPY_NODE_PATH_TARGET) {
+                    ADDITIONAL_CHILD++;
+                }
+
+                if (COPY_NODE_PATH_TARGET && !PASTE_CONTROL) {
+                    PASTE_CONTROL = true;
+                    alignSubNodes();
                 }
 
             };
@@ -676,6 +709,9 @@ var app = new function() {
             this.triggerEvent = function() { // @update SELECTED_INDEX => argument
 
                 if (!beams[Math.round(SELECTED_INDEX)]) return;
+                if (SELECTED_INDEX < 0 || (NODES_FREE_ALIGN && child.length <= SELECTED_INDEX)) {
+                    currentStateAction = NODE_STATE_ACTION_SELECT;
+                }
 
                 __this.forceViewUpdate();
 
@@ -686,9 +722,13 @@ var app = new function() {
                     case NODE_STATE_ACTION_EDIT: {
                         __this.handleEdit();
                     } break;
+                    case NODE_STATE_ACTION_COPY: {
+                        __this.handleCopy();
+                    } break;
                     case NODE_STATE_ACTION_DELETE: {
                         __this.handleDelete();
-                    }
+                    } break;
+                    default: console.log("Unhandled action: " + currentStateAction);
                 }
 
             };
@@ -703,6 +743,7 @@ var app = new function() {
                 switch (trigger) {
                     case TRIGGER_ADD: TREE_ROOT.handler.addNode(); break;
                     case TRIGGER_JUMP: TREE_ROOT.handler.jumpNode(); break;
+                    case TRIGGER_PASTE: TREE_ROOT.handler.pasteNode(_this.getPath()); break;
                     default: console.log("Unrecognised trigger");
                 }
 
@@ -731,6 +772,15 @@ var app = new function() {
                 if (!node) return;
 
                 TREE_ROOT.handler.editNode(node.getPath());
+
+            };
+
+            this.handleCopy = function() {
+
+                var node = __this.getCurrentNode();
+                if (!node) return;
+
+                TREE_ROOT.handler.copyNode(node.getPath());
 
             };
 
@@ -808,7 +858,7 @@ var app = new function() {
             };
 
             /**
-             * Server data update chain handler. Function forces to make requests to dataAdapter again.
+             * Server data update chain handler. Function forces to make requests to dataAdaptor again.
              */
             this.update = function() {
 
@@ -944,8 +994,6 @@ var app = new function() {
                             tempBeam.beam.setSubPathName(child[i]);
                             tempBeam.index = i;
                             beams[i] = tempBeam;
-                            //tempNode = tempBeam.getNode();
-                            //tempNode.setValue(dataAdapter.getValue(tempNode.getPath())); // @wrong! SetPath!!!
                         } else { // create
                             beams[i] = { index: i, beam: new Beam(node, child[i], 0, 0)};
                         }
@@ -996,6 +1044,7 @@ var app = new function() {
                 switch (currentStateAction) {
                     case NODE_STATE_ACTION_SELECT: return CSS_CLASS_NAME_SELECT; break;
                     case NODE_STATE_ACTION_EDIT: return CSS_CLASS_NAME_EDIT; break;
+                    case NODE_STATE_ACTION_COPY: return CSS_CLASS_NAME_COPY; break;
                     case NODE_STATE_ACTION_DELETE: return CSS_CLASS_NAME_DELETE; break;
                     default: return CSS_EMPTY_CLASS_NAME;
                 }
@@ -1321,6 +1370,7 @@ var app = new function() {
          * @param angle
          * @param radius
          * @param zIndex
+         * @param CSSClassName
          */
         this.updateGeometry = function(angle, radius, zIndex, CSSClassName) {
 
@@ -1521,7 +1571,7 @@ var app = new function() {
          * @override
          * @param path
          */
-        dataAdapter.childUpdated = function(path) {
+        dataAdaptor.childUpdated = function(path) {
 
             var node = getNodeByPath(path);
             if (node) node.handle.updateChild();
@@ -1532,7 +1582,7 @@ var app = new function() {
          * @override
          * @param path
          */
-        dataAdapter.nodeValueUpdated = function(path) {
+        dataAdaptor.nodeValueUpdated = function(path) {
 
             var node = getNodeByPath(path);
             if (node) node.updateValue();
@@ -1589,13 +1639,32 @@ var app = new function() {
 
             editNode: function(path) {
 
-                uiController.switchEditNodeForm(path[path.length - 1], dataAdapter.getValue(path));
+                uiController.switchEditNodeForm(path[path.length - 1], dataAdaptor.getValue(path));
+
+            },
+
+            copyNode: function(path) {
+
+                COPY_NODE_PATH_TARGET = path;
+
+            },
+
+            pasteNode: function(path) {
+
+                if (!COPY_NODE_PATH_TARGET) return;
+
+                COPY_NODE_PATH_DESTINATION = path;
+
+                uiController.switchCopyNodeForm(
+                    COPY_NODE_PATH_TARGET.join(" -> "),
+                    path.join(" -> ") + " -> "
+                );
 
             },
 
             deleteNode: function(path) {
 
-                dataAdapter.deleteNode(path);
+                dataAdaptor.deleteNode(path);
 
             },
 
@@ -1673,7 +1742,7 @@ var app = new function() {
             if (!TREE_ROOT) return;
             var path = TREE_ROOT.getCurrentPath();
             if (!path.length) return;
-            dataAdapter.setNode(path, name, value, function(success) {
+            dataAdaptor.setNode(path, name, value, function(success) {
                 if (!success) {
                     uiController.showMessage("Failed to set node",
                         "Unable to set node [" + name + "] with value [" + value + "]");
@@ -1699,10 +1768,23 @@ var app = new function() {
             if (!node) return;
             if (node.getIndex() !== name) return;
 
-            dataAdapter.setNode(path, name, value, function(success) {
+            dataAdaptor.setNode(path, name, value, function(success) {
                 if (!success) {
                     uiController.showMessage("Failed to set node",
                             "Unable to set node [" + name + "] with value [" + value + "]");
+                }
+            });
+
+        },
+
+        copyNode: function(destinationNodeName) {
+
+            COPY_NODE_PATH_DESTINATION.push(destinationNodeName);
+            dataAdaptor.copyNode(COPY_NODE_PATH_TARGET, COPY_NODE_PATH_DESTINATION, function(ok) {
+                if (!ok) {
+                    uiController.showMessage("Failed to copy node",
+                            "Unable to copy node [" + COPY_NODE_PATH_TARGET.join(" -> ")
+                                + "] to [" + COPY_NODE_PATH_DESTINATION.join(" -> ") + "]");
                 }
             });
 
@@ -1713,14 +1795,14 @@ var app = new function() {
          */
         jumpNode: function(name) {
 
-            dataAdapter.setJumper(TREE_ROOT.getCurrentPath(), name);
+            dataAdaptor.setJumper(TREE_ROOT.getCurrentPath(), name);
 
         }
 
     };
 
     /**
-     * Resets tree root for new or existing adapter. Adapter will be reset too.
+     * Resets tree root for new or existing adaptor. Adapter will be reset too.
      *
      * @param adapter {object=}
      * @param baseName {string=}
@@ -1772,7 +1854,7 @@ var app = new function() {
             request: "getManifest"
         }, function(data) {
 
-            var s = "<h3>GlobalsDB Admin NodeJS Server adapter</h3>" +
+            var s = "<h3>GlobalsDB Admin NodeJS Server adaptor</h3>" +
                 "<div style=\"display: inline-block; margin: 0 auto; text-align: left;\">";
             data = data.manifest || {};
 
@@ -1794,6 +1876,8 @@ var app = new function() {
      */
     this.init = function() {
 
+        uiController.init();
+
         USE_HARDWARE_ACCELERATION = transformsSupport();
 
         setElements(); // variables setup
@@ -1803,7 +1887,6 @@ var app = new function() {
 
         TREE_ROOT = new TreeRoot();
 
-        uiController.init();
         uiController.switchConnectForm();
 
     }

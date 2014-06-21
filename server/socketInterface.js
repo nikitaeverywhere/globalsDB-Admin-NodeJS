@@ -4,7 +4,7 @@
 module.exports = new function() {
 
     var config = require("./../config.js"),
-        Adapter = require("./adapter.js"),
+        Adaptor = require("./adaptor.js"),
         WebSocketServer = require("ws").Server,
         fs = require("fs"),
         webSocketServer,
@@ -15,9 +15,9 @@ module.exports = new function() {
 
     this.MANIFEST = {
 
-        VERSION: "1.0.0",
+        VERSION: "1.2.0",
         AUTHOR: "ZitRo",
-        DESCRIPTION: "GlobalsDB Admin server adapter",
+        DESCRIPTION: "GlobalsDB Admin server adaptor",
         COPYRIGHT: "GlobalsDB Admin 2014 © All rights protected."
 
     };
@@ -90,7 +90,7 @@ module.exports = new function() {
             socket: ws,
             logged: false,
             authorized: false,
-            adapter: null
+            adaptor: null
         };
 
         ws.on("message", function(data) {
@@ -99,8 +99,8 @@ module.exports = new function() {
 
         ws.on("close", function(code, reason) {
             if (clients.hasOwnProperty(id) && typeof clients[id] === "object") {
-                if (clients[id].adapter) {
-                    clients[id].adapter.asynchronousRequest({
+                if (clients[id].adaptor) {
+                    clients[id].adaptor.asynchronousRequest({
                         request: "close"
                     }, function(data) {
                         delete clients[id];
@@ -138,7 +138,7 @@ module.exports = new function() {
 
         if (client.logged && client.authorized) { // if authorized and logged
 
-            if (!client.adapter) return;
+            if (!client.adaptor) return;
 
             if (data && data.request && data.request === "getManifest") {
 
@@ -148,7 +148,7 @@ module.exports = new function() {
                 return;
             }
 
-            client.adapter.asynchronousRequest(data, function(data) {
+            client.adaptor.asynchronousRequest(data, function(data) {
                 send(client, data);
             });
 
@@ -179,10 +179,10 @@ module.exports = new function() {
             client.authorized = true;
 
         } else if (!client.logged && client.authorized) { // if authorized but not logged
-            // creating db adapter for client if not exists || reset db connection.
+            // creating db adaptor for client if not exists || reset db connection.
 
-            if (!client.adapter) {
-                client.adapter = new Adapter();
+            if (!client.adaptor) {
+                client.adaptor = new Adaptor();
             } else {
                 // @feature connection fail resume
             }
@@ -196,7 +196,7 @@ module.exports = new function() {
                 return;
             }
 
-            client.adapter.asynchronousRequest({
+            client.adaptor.asynchronousRequest({
                 request: "open",
                 data: {
                     path: config.database.databases[data.database] || "",

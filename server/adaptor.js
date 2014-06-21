@@ -68,6 +68,16 @@ module.exports = function() {
             });
         },
 
+        copyNode: function(data, handler) {
+            db.copy(data["fromPathArray"] || [], data["toPathArray"] || [],
+                function(error, result) {
+                    handler({
+                        error: error,
+                        result: result
+                    });
+            });
+        },
+
         setNode: function(data, handler) {
             db.setNode(data.pathArray || [], data.data || "", function(error, result) {
                 handler({

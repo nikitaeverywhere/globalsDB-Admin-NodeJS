@@ -30,12 +30,6 @@ module.exports = function(grunt) {
                     "client/js/*.js"
                 ],
                 dest: "<%= buildDirectory %>/client/js/app.js"
-            },
-            css: {
-                src: [
-                    "client/css/*.css"
-                ],
-                dest: "<%= buildDirectory %>/client/css/app.css"
             }
         },
 
@@ -49,8 +43,10 @@ module.exports = function(grunt) {
 
         cssmin: {
             minify: {
-                src: "<%= concat.css.dest %>",
-                dest: "<%= concat.css.dest %>"
+                expand: true,
+                cwd: "client/css/",
+                src: "*.css",
+                dest: "<%= buildDirectory %>/client/css/"
             }
         },
         
