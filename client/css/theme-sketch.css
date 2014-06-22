@@ -119,15 +119,20 @@ hr {
 }
 
 .link.selected, .link.selected > div > div, .node.selected {
-    box-shadow: 0 0 0 4px rgb(0, 0, 0);
+    box-shadow: 0 0 0 3px rgb(0, 0, 0);
 }
 
 .link.editing, .link.editing > div > div, .node.editing {
-    box-shadow: 0 0 0 4px rgb(128, 128, 128);;
+    box-shadow: 0 0 0 3px rgb(60, 60, 60);
 }
 
 .link.copying, .link.copying > div > div, .node.copying {
-    box-shadow: 0 0 0 2px rgb(80, 80, 80);
+    box-shadow: 0 0 0 3px rgb(120, 120, 120);
+}
+
+.link.deleting, .link.deleting > div > div, .node.deleting {
+    box-shadow: 0 0 0 3px rgb(200, 200, 200);
+    color: #7f7f7f;
 }
 
 .node.copying > div {
@@ -135,10 +140,14 @@ hr {
     background-size: 70%;
 }
 
-.link.deleting, .link.deleting > div > div, .node.deleting {
-    box-shadow: none;
-    background: none;
-    color: #7f7f7f;
+.node.editing > div {
+    background: url("../img/editIcon.png") no-repeat 50%;
+    background-size: 70%;
+}
+
+.node.deleting > div {
+    background: url("../img/deleteIcon.png") no-repeat 50%;
+    background-size: 70%;
 }
 
 .link {
@@ -293,4 +302,10 @@ input::-moz-focus-inner, select::-moz-focus-inner, textarea::-moz-focus-inner {
 
 .loadingImage {
     content: url("../img/loading-white.gif");
+    width: 50%;
+}
+
+.hint {
+    text-shadow: 1px 1px 1px white;
+    font-weight: 900;
 }

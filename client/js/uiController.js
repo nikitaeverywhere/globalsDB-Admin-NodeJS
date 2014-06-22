@@ -3,6 +3,7 @@ var uiController = new function() {
     var _this = this,
         UI_ELEMENT = null,
         UI_SHOWN = false,
+        HINT_CLASS_NAME = "hint",
         ELEMENTS = {
             infoBar: null,
             connect: null,
@@ -80,6 +81,53 @@ var uiController = new function() {
 
     };
 
+    /**
+     * Show hint.
+     *
+     * @param html
+     */
+    this.hint = function(html) {
+
+        var o = document.createElement("DIV"),
+            direction = { x: 0, y: -1 },
+            stepsLeft = 55,
+            FADE_END_STEPS = 25,
+            FADE_END_SLEEP = 20,
+            FADE_START = 9,
+            SPEED = 5,
+            INITIAL_STEPS = stepsLeft,
+            interval;
+
+        o.className = HINT_CLASS_NAME;
+        o.innerHTML = html;
+        o.style["opacity"] = 0;
+
+        interval = setInterval(function() {
+
+            o.style[direction.x > 0 ? "left" : "right"] =
+                (parseFloat(o.style[direction.x > 0 ? "left" : "right"]) || 0)
+                    + Math.sin(Math.PI/2*Math.max(stepsLeft - FADE_END_STEPS, 0)/(INITIAL_STEPS - FADE_END_STEPS))
+                *SPEED*direction.x + "px";
+            o.style[direction.y > 0 ? "top" : "bottom"] =
+                (parseFloat(o.style[direction.y > 0 ? "top" : "bottom"]) || 0)
+                    - Math.sin(Math.PI/2*Math.max(stepsLeft - FADE_END_STEPS, 0)/(INITIAL_STEPS - FADE_END_STEPS))
+                *SPEED*direction.y + "px";
+
+            stepsLeft--;
+            o.style["opacity"] = Math.min((INITIAL_STEPS - stepsLeft)/FADE_START,
+                    stepsLeft/(FADE_END_STEPS - FADE_END_SLEEP), 1);
+
+            if (stepsLeft < 0) {
+                o.parentNode.removeChild(o);
+                clearInterval(interval);
+            }
+
+        }, 25);
+
+        document.body.appendChild(o);
+
+    };
+
     this.showLoadingAnimation = showLoadingAnimation;
 
     this.showUI = function() {
@@ -120,6 +168,7 @@ var uiController = new function() {
         _this.showUI();
         targetElement(ELEMENTS.addNode);
         timeFocus(FIELDS.addNodeName);
+        FIELDS.addNodeValue.value = "";
 
     };
 

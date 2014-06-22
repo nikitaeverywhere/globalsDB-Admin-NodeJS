@@ -18,7 +18,7 @@ var dataAdaptor = new function() {
             Welcome: "Log in",
             To: "",
             The: "",
-            GlobalsDB: "Please",
+            Globals: "Please",
             Admin: ""
         }
 
@@ -203,6 +203,17 @@ var dataAdaptor = new function() {
     };
 
     /**
+     * Clears node (removes child) from data tree without any server actions.
+     */
+    this.forceClear = function(path) {
+
+        clearObject(path);
+        setCompleted(path, false);
+        _this.childUpdated(path.slice(1));
+
+    };
+
+    /**
      * This function is bind to application. Each call forces app to request data again for required nodes.
      * Also use this function for asynchronous data tree update: call it after update with appropriate path argument.
      *
@@ -331,8 +342,6 @@ var dataAdaptor = new function() {
             }
         }, function(response) {
 
-            console.log(response);
-
             if (response && !response.error) {
 
                 updateTreeSubLevel(destinationPathArray.slice(0, destinationPathArray.length - 1),
@@ -363,14 +372,14 @@ var dataAdaptor = new function() {
             data: {
                 pathArray: pathArray.slice(1)
             }
-        }, function(responce) {
+        }, function(response) {
 
-            if (responce && !responce.error) {
+            if (response && !response.error) {
                 deleteTreeNode(pathArray);
                 _this.childUpdated(pathArray.slice(1)); // don't ask me why
                 if (typeof handler === "function") handler(true);
             } else {
-                console.log("Wrong kill request.", responce);
+                console.log("Wrong kill request.", response);
                 if (typeof handler === "function") handler(false);
             }
 

@@ -71,3 +71,14 @@
     width: 100px;
     height: 100px;
 }
+
+.hint {
+    position: fixed;
+    text-align: center;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    z-index: 100002;
+    font-style: italic;
+    font-size: 120%;
+}

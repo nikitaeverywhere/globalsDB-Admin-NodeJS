@@ -11,7 +11,7 @@ html, body {
 }
 
 #ui {
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.8);
 }
 
 a {
@@ -130,11 +130,26 @@ hr {
 }
 
 .link.copying, .link.copying > div > div, .node.copying {
-    box-shadow: 0 0 6px 4px rgb(255, 88, 0);
+    box-shadow: 0 0 6px 4px rgb(0, 143, 255);
 }
 
 .link.deleting, .link.deleting > div > div, .node.deleting {
     box-shadow: 0 0 6px 4px rgb(255, 0, 5);
+}
+
+.node.copying > div {
+    background: url("../img/copyIcon.png") no-repeat 50%;
+    background-size: 70%;
+}
+
+.node.editing > div {
+    background: url("../img/editIcon.png") no-repeat 50%;
+    background-size: 70%;
+}
+
+.node.deleting > div {
+    background: url("../img/deleteIcon.png") no-repeat 50%;
+    background-size: 70%;
 }
 
 .link {
@@ -289,4 +304,12 @@ input::-moz-focus-inner, select::-moz-focus-inner, textarea::-moz-focus-inner {
     margin: 15px;
 }
 
-.loadingImage {}
+.loadingImage {
+    content: url("../img/loading-black.gif");
+    width: 50%;
+}
+
+.hint {
+    text-shadow: 1px 1px 2px rgb(115, 233, 255);
+    font-weight: 900;
+}

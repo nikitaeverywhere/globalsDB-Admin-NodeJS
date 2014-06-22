@@ -15,10 +15,11 @@ module.exports = new function() {
 
     this.MANIFEST = {
 
-        VERSION: "1.2.0",
+        VERSION: "1.3.0",
         AUTHOR: "ZitRo",
         DESCRIPTION: "GlobalsDB Admin server adaptor",
-        COPYRIGHT: "GlobalsDB Admin 2014 © All rights protected."
+        COPYRIGHT: "GlobalsDB Admin 2014 © All rights protected.",
+        HOMEPAGE: "http://zitros.github.io/globalsDB-Admin-NodeJS"
 
     };
 
