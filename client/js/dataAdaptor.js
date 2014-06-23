@@ -30,6 +30,7 @@ var dataAdaptor = new function() {
             obj = getTreeObjectByPath(path.slice(0, path.length - 1));
         if (!obj) return;
 
+        setCompleted(path, false);
         if (obj.hasOwnProperty(name)) {
             obj[name] = {};
         }
@@ -114,6 +115,13 @@ var dataAdaptor = new function() {
             limits[hash] = 1;
         } else if (limits.hasOwnProperty(hash)) {
             delete limits[hash];
+        }
+
+        // check and remove child for non-completed nodes
+        if (completed) return;
+        for (var l in limits) {
+            if (!limits.hasOwnProperty(l)) continue;
+            if (l.indexOf(hash) === 0) delete limits[l];
         }
 
     };
