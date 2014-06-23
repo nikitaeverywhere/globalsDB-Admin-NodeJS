@@ -140,6 +140,8 @@ var app = new function() {
             VIEW_Y = 0,
             VISUAL_VIEW_X = 0,
             VISUAL_VIEW_Y = 0,
+            VIEW_CENTER_X = 0,
+            VIEW_CENTER_Y = 0,
             VIEWPORT_SCALE = 1,
             WORLD_WIDTH = 100000,
             WORLD_HEIGHT = 100000,
@@ -176,8 +178,10 @@ var app = new function() {
             var element = DOM_ELEMENTS.FIELD;
 
             VIEWPORT_SCALE += delta;
-
             VIEWPORT_SCALE = Math.max(MIN_SCALE, Math.min(MAX_SCALE, VIEWPORT_SCALE));
+
+            _this.setViewCenter(VIEW_CENTER_X, VIEW_CENTER_Y);
+            forceViewUpdate();
 
             element.style["transform"] = element.style["-ms-transform"] = element.style["-o-transform"] =
                 element.style["-moz-transform"] = element.style["-webkit-transform"] =
@@ -193,6 +197,8 @@ var app = new function() {
          */
         this.setViewCenter = function(x, y) {
 
+            VIEW_CENTER_X = x;
+            VIEW_CENTER_Y = y;
             VIEW_X = WORLD_WIDTH/2 + x*VIEWPORT_SCALE - VIEWPORT_WIDTH/2;
             VIEW_Y = WORLD_HEIGHT/2 + y*VIEWPORT_SCALE - VIEWPORT_HEIGHT/2;
             if (!viewportUpdateInterval) viewportUpdateInterval = setInterval(viewportUpdater, 25);
@@ -215,6 +221,14 @@ var app = new function() {
 
             DOM_ELEMENTS.VIEWPORT.scrollLeft = Math.round(VISUAL_VIEW_X);
             DOM_ELEMENTS.VIEWPORT.scrollTop = Math.round(VISUAL_VIEW_Y);
+
+        };
+
+        var forceViewUpdate = function() {
+
+            VISUAL_VIEW_X = VIEW_X;
+            VISUAL_VIEW_Y = VIEW_Y;
+            viewportUpdater();
 
         };
 
@@ -380,6 +394,12 @@ var app = new function() {
                     case 40: { // DOWN
                         scrolling(1);
                     } break;
+                    case 107: { // PLUS
+                        _this.scaleView(0.1);
+                    } break;
+                    case 109: { // MINUS
+                        _this.scaleView(-0.1);
+                    }
                 }
 
             };
