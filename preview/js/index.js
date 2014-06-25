@@ -17,21 +17,16 @@ var Geometry = {
 };
 
 /**
- * Block DOM event.
- *
- * @param e
+ * @type {string[]}
  */
-var blockEvent = function(e) {
-    e.preventDefault();
-    e.cancelBubble = true;
-    if (e.preventDefault) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-};
+var THEMES = [
+    "classic",
+    "sketch",
+    "sunrise"
+];
 
 /**
- * GlobalsDB Admin interface module.
+ * GlobalsDB Admin module.
  * @author ZitRo
  */
 var app = new function() {
@@ -42,11 +37,11 @@ var app = new function() {
             TREE_PATH: null
         },
         USE_HARDWARE_ACCELERATION = false,
-        DATA_ADAPTER = dataAdapter,
+        DATA_ADAPTER = dataAdaptor,
         TREE_ROOT = null,
         manipulator,
 
-        CLIENT_VERSION = "1.0.0",
+        CLIENT_VERSION = "1.3.0",
 
         // enables handling action by application
         ACTION_HANDLERS_ON = true,
@@ -59,13 +54,15 @@ var app = new function() {
 
         CSS_CLASS_NAME_SELECT = "selected",
         CSS_CLASS_NAME_DELETE = "deleting",
+        CSS_CLASS_NAME_COPY = "copying",
         CSS_CLASS_NAME_EDIT = "editing",
         CSS_EMPTY_CLASS_NAME = "",
 
         NODE_STATE_ACTION_SELECT = 0,
         NODE_STATE_ACTION_EDIT = 1,
-        NODE_STATE_ACTION_DELETE = 2,
-        NODE_STATE_ACTIONS = 3,
+        NODE_STATE_ACTION_COPY = 2,
+        NODE_STATE_ACTION_DELETE = 3,
+        NODE_STATE_ACTIONS = 4,
         NODE_MAX_VISUAL_ELEMENTS = 15,
 
         MIN_NODES_DISTANCE = 110, // minimal distance between nodes
@@ -74,8 +71,26 @@ var app = new function() {
 
         VIEW_UPDATES_PER_STEP = 0,
 
+        COPY_NODE_PATH_DESTINATION = null,
+        COPY_NODE_PATH_TARGET = null,
+
         TRIGGER_ADD = 0,
-        TRIGGER_JUMP = 1;
+        TRIGGER_JUMP = 1,
+        TRIGGER_PASTE = 2;
+
+    /**
+     * Block DOM event.
+     *
+     * @param e
+     */
+    var blockEvent = function(e) {
+        e.preventDefault();
+        e.cancelBubble = true;
+        if (e.preventDefault) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
 
     var setElements = function() {
 
@@ -125,6 +140,8 @@ var app = new function() {
             VIEW_Y = 0,
             VISUAL_VIEW_X = 0,
             VISUAL_VIEW_Y = 0,
+            VIEW_CENTER_X = 0,
+            VIEW_CENTER_Y = 0,
             VIEWPORT_SCALE = 1,
             WORLD_WIDTH = 100000,
             WORLD_HEIGHT = 100000,
@@ -161,8 +178,10 @@ var app = new function() {
             var element = DOM_ELEMENTS.FIELD;
 
             VIEWPORT_SCALE += delta;
-
             VIEWPORT_SCALE = Math.max(MIN_SCALE, Math.min(MAX_SCALE, VIEWPORT_SCALE));
+
+            _this.setViewCenter(VIEW_CENTER_X, VIEW_CENTER_Y);
+            forceViewUpdate();
 
             element.style["transform"] = element.style["-ms-transform"] = element.style["-o-transform"] =
                 element.style["-moz-transform"] = element.style["-webkit-transform"] =
@@ -178,6 +197,8 @@ var app = new function() {
          */
         this.setViewCenter = function(x, y) {
 
+            VIEW_CENTER_X = x;
+            VIEW_CENTER_Y = y;
             VIEW_X = WORLD_WIDTH/2 + x*VIEWPORT_SCALE - VIEWPORT_WIDTH/2;
             VIEW_Y = WORLD_HEIGHT/2 + y*VIEWPORT_SCALE - VIEWPORT_HEIGHT/2;
             if (!viewportUpdateInterval) viewportUpdateInterval = setInterval(viewportUpdater, 25);
@@ -200,6 +221,14 @@ var app = new function() {
 
             DOM_ELEMENTS.VIEWPORT.scrollLeft = Math.round(VISUAL_VIEW_X);
             DOM_ELEMENTS.VIEWPORT.scrollTop = Math.round(VISUAL_VIEW_Y);
+
+        };
+
+        var forceViewUpdate = function() {
+
+            VISUAL_VIEW_X = VIEW_X;
+            VISUAL_VIEW_Y = VIEW_Y;
+            viewportUpdater();
 
         };
 
@@ -324,8 +353,6 @@ var app = new function() {
 
                 blockEvent(e.event);
                 stopUpdate();
-                //alert(e.i);
-                //console.log("scroll end");
 
             };
 
@@ -367,6 +394,12 @@ var app = new function() {
                     case 40: { // DOWN
                         scrolling(1);
                     } break;
+                    case 107: { // PLUS
+                        _this.scaleView(0.1);
+                    } break;
+                    case 109: { // MINUS
+                        _this.scaleView(-0.1);
+                    }
                 }
 
             };
@@ -470,7 +503,7 @@ var app = new function() {
      * Node element.
      *
      * @param parentNode {Node} Parent node
-     * @param initialIndex {Array|string} Node index. In case of string, node will try require data in data adapter with it's path.
+     * @param initialIndex {Array|string} Node index. In case of string, node will try require data in data adaptor with it's path.
      *  In case of object, node will get new properties.
      * @param baseAngle
      * @param {Number=} startX
@@ -604,6 +637,7 @@ var app = new function() {
                 SELECTED_INDEX = 0,
                 VISUAL_SELECTED_INDEX = 0, // for animation
                 updateViewInterval = 0,
+                PASTE_CONTROL = false, // additional variable to define if paste control was added
                 NODES_FREE_ALIGN = true; // shows if place nodes free (not to fix them with selector)
 
             /**
@@ -613,25 +647,42 @@ var app = new function() {
 
                 child[-1] = undefined;
                 child[-2] = undefined;
+                child[-3] = undefined;
 
                 var search = {
-                        name: "jump to node",
+                        name: "jump",
                         value: "<img src=\"img/jumpIcon.png\" class=\"jumpIcon\"/>",
                         trigger: TRIGGER_JUMP
                     },
                     add = {
-                        name: "add node",
+                        name: "add",
                         value: "<img src=\"img/addIcon.png\" class=\"addIcon\"/>",
                         trigger: TRIGGER_ADD
+                    },
+                    paste = {
+                        name: "paste",
+                        value: "<img src=\"img/copyIcon.png\" class=\"copyIcon\">",
+                        trigger: TRIGGER_PASTE
                     };
 
                 if (NODES_FREE_ALIGN) {
                     ADDITIONAL_CHILD = 1;
                     child[-1] = add;
+                    child[-2] = paste;
                 } else {
                     ADDITIONAL_CHILD = 2;
                     child[-1] = add;
                     child[-2] = search;
+                    child[-3] = paste;
+                }
+
+                if (COPY_NODE_PATH_TARGET) {
+                    ADDITIONAL_CHILD++;
+                }
+
+                if (COPY_NODE_PATH_TARGET && !PASTE_CONTROL) {
+                    PASTE_CONTROL = true;
+                    alignSubNodes();
                 }
 
             };
@@ -678,20 +729,31 @@ var app = new function() {
             this.triggerEvent = function() { // @update SELECTED_INDEX => argument
 
                 if (!beams[Math.round(SELECTED_INDEX)]) return;
+                if (SELECTED_INDEX < 0 || (NODES_FREE_ALIGN && child.length <= SELECTED_INDEX)) {
+                    currentStateAction = NODE_STATE_ACTION_SELECT;
+                }
 
-                __this.forceViewUpdate();
+
 
                 switch (currentStateAction) {
                     case NODE_STATE_ACTION_SELECT: {
+                        VISUAL_SELECTED_INDEX = SELECTED_INDEX;
                         __this.handleSelect();
                     } break;
                     case NODE_STATE_ACTION_EDIT: {
                         __this.handleEdit();
                     } break;
+                    case NODE_STATE_ACTION_COPY: {
+                        __this.handleCopy();
+                        resetExtraChild();
+                    } break;
                     case NODE_STATE_ACTION_DELETE: {
                         __this.handleDelete();
-                    }
+                    } break;
+                    default: console.log("Unhandled action: " + currentStateAction);
                 }
+
+                __this.forceViewUpdate();
 
             };
 
@@ -705,6 +767,7 @@ var app = new function() {
                 switch (trigger) {
                     case TRIGGER_ADD: TREE_ROOT.handler.addNode(); break;
                     case TRIGGER_JUMP: TREE_ROOT.handler.jumpNode(); break;
+                    case TRIGGER_PASTE: TREE_ROOT.handler.pasteNode(_this.getPath()); break;
                     default: console.log("Unrecognised trigger");
                 }
 
@@ -733,6 +796,15 @@ var app = new function() {
                 if (!node) return;
 
                 TREE_ROOT.handler.editNode(node.getPath());
+
+            };
+
+            this.handleCopy = function() {
+
+                var node = __this.getCurrentNode();
+                if (!node) return;
+
+                TREE_ROOT.handler.copyNode(node.getPath());
 
             };
 
@@ -765,9 +837,7 @@ var app = new function() {
                             beams[Math.round(last)].beam.setRadius(
                                 beams[Math.round(last)].beam.getInitialRadius());
                             beams[Math.round(last)].beam.getNode().childController.removeBeams();
-                        } catch (e) {
-                            console.error(e);
-                        }
+                        } catch (e) { /* deleted beam */ }
                     }
                 }
 
@@ -810,7 +880,7 @@ var app = new function() {
             };
 
             /**
-             * Server data update chain handler. Function forces to make requests to dataAdapter again.
+             * Server data update chain handler. Function forces to make requests to dataAdaptor again.
              */
             this.update = function() {
 
@@ -818,9 +888,9 @@ var app = new function() {
 
                 updateFromModel();
 
-                if (child.length !== length) { // @test
+                //if (child.length !== length) {
                     alignSubNodes();
-                }
+                //}
 
                 __this.updateSelectedIndex(0);
 
@@ -846,8 +916,15 @@ var app = new function() {
 
                 child.splice(fromIndex + i, child.length - fromIndex - i);
 
-                if (level.length + fromIndex - 1 > MAX_VISUAL_ELEMENTS/(PARENT_NODE?2:1)) {
+                if (NODES_FREE_ALIGN
+                    && (level.length + fromIndex - 1 > MAX_VISUAL_ELEMENTS/(PARENT_NODE?2:1))) {
                     NODES_FREE_ALIGN = false;
+                    for (var b in beams) {
+                        if (!beams.hasOwnProperty(b)) continue;
+                        beams[b].beam.setRadius(0);
+                        beams[b].beam.resetInitialRadius();
+                    }
+                    alignSubNodes();
                 }
 
                 resetExtraChild();
@@ -875,6 +952,7 @@ var app = new function() {
                         for (var b in beams) {
                             if (!beams.hasOwnProperty(b)) continue;
                             beams[b].beam.setRadius(beams[b].beam.getInitialRadius());
+                            beams[b].beam.resetInitialRadius();
                             var n = beams[b].beam.getNode();
                             if (n) {
                                 n.childController.removeBeams();
@@ -946,8 +1024,6 @@ var app = new function() {
                             tempBeam.beam.setSubPathName(child[i]);
                             tempBeam.index = i;
                             beams[i] = tempBeam;
-                            //tempNode = tempBeam.getNode();
-                            //tempNode.setValue(dataAdapter.getValue(tempNode.getPath())); // @wrong! SetPath!!!
                         } else { // create
                             beams[i] = { index: i, beam: new Beam(node, child[i], 0, 0)};
                         }
@@ -989,7 +1065,7 @@ var app = new function() {
 
                 clearInterval(updateViewInterval);
                 updateViewInterval = 0;
-                viewScrollUpdater()
+                viewScrollUpdater();
 
             };
 
@@ -998,6 +1074,7 @@ var app = new function() {
                 switch (currentStateAction) {
                     case NODE_STATE_ACTION_SELECT: return CSS_CLASS_NAME_SELECT; break;
                     case NODE_STATE_ACTION_EDIT: return CSS_CLASS_NAME_EDIT; break;
+                    case NODE_STATE_ACTION_COPY: return CSS_CLASS_NAME_COPY; break;
                     case NODE_STATE_ACTION_DELETE: return CSS_CLASS_NAME_DELETE; break;
                     default: return CSS_EMPTY_CLASS_NAME;
                 }
@@ -1014,10 +1091,10 @@ var app = new function() {
                 // @weirdMath
                 for (var b in beams) {
                     if (!beams.hasOwnProperty(b)) continue;
-                    beams[b].beam.highlight(
-                        (Math.round(SELECTED_INDEX) === beams[b].index)?
-                            getAppropriateStateActionClassName():CSS_EMPTY_CLASS_NAME
-                    ); // @improve
+//                    beams[b].beam.highlight(
+//                        (Math.round(SELECTED_INDEX) === beams[b].index)?
+//                            getAppropriateStateActionClassName():CSS_EMPTY_CLASS_NAME
+//                    ); // @improve
                     if (baseAngleDefined) {
                         bAngle = 0;
                         aAngle = Math.PI;
@@ -1034,18 +1111,23 @@ var app = new function() {
                             - ((mi > 1)?aAngle/2:0) + (i/(mi - 1 || 1))*aAngle - bAngle
                     ) || 0;
 
+                    var r;
+
                     if (!beams[b].beam.getInitialRadius()) {
-                        var r = Math.max(
+                        r = Math.max(
                             beams[b].beam.getNode().getR()/Math.tan(dAngle/2),
                             beams[b].beam.getNode().getR() + node.getR() + MIN_NODES_DISTANCE
                         );
                         if (r === Infinity) {
                             r = beams[b].beam.getNode().getR() + node.getR() + MIN_NODES_DISTANCE;
                         }
-                        beams[b].beam.setRadius(r);
+//                        beams[b].beam.setRadius(r);
                     }
 
-                    beams[b].beam.setAngle(angle);
+//                    beams[b].beam.setAngle(angle);
+                    beams[b].beam.updateGeometry(angle, r || beams[b].beam.getRadius(),
+                        undefined, (Math.round(SELECTED_INDEX) === beams[b].index)?
+                            getAppropriateStateActionClassName():CSS_EMPTY_CLASS_NAME);
                     i++;
 
                 }
@@ -1073,8 +1155,9 @@ var app = new function() {
                         + ((typeof visualNodeProps.baseAngle === "number")?
                             visualNodeProps.baseAngle:Math.PI) + Math.PI,
                         Math.max(
-                                beams[b].beam.getNode().getR()/Math.tan(Math.PI*2/MAX_VISUAL_ELEMENTS),
-                                beams[b].beam.getNode().getR() + node.getR() + MIN_NODES_DISTANCE
+                            beams[b].beam.getRadius(),
+                            beams[b].beam.getNode().getR()/Math.tan(Math.PI*2/MAX_VISUAL_ELEMENTS),
+                            beams[b].beam.getNode().getR() + node.getR() + MIN_NODES_DISTANCE
                         ),
                             -Math.round(d*d) + 200, (Math.round(SELECTED_INDEX) === beams[b].index)?
                             getAppropriateStateActionClassName():CSS_EMPTY_CLASS_NAME);
@@ -1322,7 +1405,8 @@ var app = new function() {
          * Completely updates beam.
          * @param angle
          * @param radius
-         * @param zIndex
+         * @param {Number|undefined} zIndex
+         * @param CSSClassName
          */
         this.updateGeometry = function(angle, radius, zIndex, CSSClassName) {
 
@@ -1330,8 +1414,13 @@ var app = new function() {
             node.setBaseAngle(Geometry.normalizeAngle(visualBeamProps.angle + Math.PI));
             if (!visualBeamProps.initialRadius) visualBeamProps.initialRadius = radius;
             visualBeamProps.r = radius;
-            if (element) element.style.zIndex = 11 + zIndex;
-            if (node) node.setZIndex(12 + zIndex);
+            if (zIndex && element) element.style.zIndex = 11 + zIndex;
+            if (zIndex && node) node.setZIndex(12 + zIndex);
+
+            if (CSSClassName && typeof node.getIndex() === "object" // limit to allow only
+                && typeof node.getIndex() !== "undefined") // selection for trigger nodes
+                CSSClassName = CSS_CLASS_NAME_SELECT;
+
             element.className = CSS_CLASS_NAME_LINK + " " + CSSClassName;
             if (node) node.highlight(CSSClassName);
 
@@ -1363,14 +1452,21 @@ var app = new function() {
          * Make link glow (highlight link).
          *
          * @deprecated
-         * @param CSSClassName {Boolean}
+         * @see this.updateGeometry
+         * @param CSSClassName {String} Empty string or class name
          */
         this.highlight = function(CSSClassName) {
+
+            if (CSSClassName && typeof node.getIndex() === "object" // limit to allow only
+                && typeof node.getIndex() !== "undefined") // selection for trigger nodes
+                CSSClassName = CSS_CLASS_NAME_SELECT;
 
             element.className = CSS_CLASS_NAME_LINK + " " + CSSClassName;
             if (node) node.highlight(CSSClassName);
 
         };
+
+        this.resetInitialRadius = function() { visualBeamProps.initialRadius = 0; };
 
         this.getNode = function() { return node; };
         this.getSubPath = function() { return subPath; };
@@ -1523,9 +1619,10 @@ var app = new function() {
          * @override
          * @param path
          */
-        dataAdapter.childUpdated = function(path) {
+        dataAdaptor.childUpdated = function(path) {
 
             var node = getNodeByPath(path);
+            if (node != triggeringNode) return;
             if (node) node.handle.updateChild();
 
         };
@@ -1534,7 +1631,7 @@ var app = new function() {
          * @override
          * @param path
          */
-        dataAdapter.nodeValueUpdated = function(path) {
+        dataAdaptor.nodeValueUpdated = function(path) {
 
             var node = getNodeByPath(path);
             if (node) node.updateValue();
@@ -1591,13 +1688,38 @@ var app = new function() {
 
             editNode: function(path) {
 
-                uiController.switchEditNodeForm(path[path.length - 1], dataAdapter.getValue(path));
+                uiController.switchEditNodeForm(path[path.length - 1], dataAdaptor.getValue(path));
+
+            },
+
+            copyNode: function(path) {
+
+                COPY_NODE_PATH_TARGET = path;
+                uiController.hint("Copied [" + path.join(" -> ") + "]");
+
+            },
+
+            pasteNode: function(path) {
+
+                if (!COPY_NODE_PATH_TARGET) return;
+
+                COPY_NODE_PATH_DESTINATION = path;
+
+                uiController.switchCopyNodeForm(
+                    COPY_NODE_PATH_TARGET.join(" -> "),
+                    path.join(" -> ") + " -> "
+                );
 
             },
 
             deleteNode: function(path) {
 
-                dataAdapter.deleteNode(path);
+                var dp = path.slice(); // because something in dataAdaptor.deleteNode changes array
+
+                dataAdaptor.deleteNode(path, function(success) {
+                    if (success) uiController.hint("Node [" + dp.join(" -> ")
+                        + "] has been deleted.");
+                });
 
             },
 
@@ -1675,10 +1797,12 @@ var app = new function() {
             if (!TREE_ROOT) return;
             var path = TREE_ROOT.getCurrentPath();
             if (!path.length) return;
-            dataAdapter.setNode(path, name, value, function(success) {
+            dataAdaptor.setNode(path, name, value, function(success) {
                 if (!success) {
                     uiController.showMessage("Failed to set node",
                         "Unable to set node [" + name + "] with value [" + value + "]");
+                } else {
+                    uiController.hint("Node [" + name + "] created.");
                 }
             });
 
@@ -1701,10 +1825,29 @@ var app = new function() {
             if (!node) return;
             if (node.getIndex() !== name) return;
 
-            dataAdapter.setNode(path, name, value, function(success) {
+            dataAdaptor.setNode(path, name, value, function(success) {
                 if (!success) {
                     uiController.showMessage("Failed to set node",
                             "Unable to set node [" + name + "] with value [" + value + "]");
+                } else {
+                    uiController.hint("Node [" + name + "] changed.");
+                }
+            });
+
+        },
+
+        copyNode: function(destinationNodeName) {
+
+            COPY_NODE_PATH_DESTINATION.push(destinationNodeName);
+            dataAdaptor.copyNode(COPY_NODE_PATH_TARGET, COPY_NODE_PATH_DESTINATION, function(ok) {
+                if (!ok) {
+                    uiController.showMessage("Failed to copy node",
+                            "Unable to copy node [" + COPY_NODE_PATH_TARGET.join(" -> ")
+                                + "] to [" + COPY_NODE_PATH_DESTINATION.join(" -> ") + "]");
+                } else {
+                    dataAdaptor.forceClear(COPY_NODE_PATH_DESTINATION);
+                    uiController.hint("Pasted: [" + COPY_NODE_PATH_TARGET.join(" -> ") + "] to ["
+                        + COPY_NODE_PATH_DESTINATION.join(" -> ") + "]");
                 }
             });
 
@@ -1715,19 +1858,21 @@ var app = new function() {
          */
         jumpNode: function(name) {
 
-            dataAdapter.setJumper(TREE_ROOT.getCurrentPath(), name);
+            dataAdaptor.setJumper(TREE_ROOT.getCurrentPath(), name);
+            uiController.hint("Jumper set to [" + name + "]");
 
         }
 
     };
 
     /**
-     * Resets tree root for new or existing adapter. Adapter will be reset too.
+     * Resets tree root for new or existing adaptor. Adapter will be reset too.
      *
      * @param adapter {object=}
      * @param baseName {string=}
+     * @param username {string=}
      */
-    this.resetTreeRoot = function(adapter, baseName) {
+    this.resetTreeRoot = function(adapter, baseName, username) {
 
         if (TREE_ROOT) {
             TREE_ROOT.remove();
@@ -1737,7 +1882,7 @@ var app = new function() {
             DATA_ADAPTER = adapter;
         }
 
-        DATA_ADAPTER.reset(baseName);
+        DATA_ADAPTER.reset(username + ": " + baseName);
 
         TREE_ROOT = new TreeRoot(baseName);
 
@@ -1773,7 +1918,7 @@ var app = new function() {
             request: "getManifest"
         }, function(data) {
 
-            var s = "<h3>GlobalsDB Admin NodeJS Server adapter</h3>" +
+            var s = "<h3>GlobalsDB Admin NodeJS Server adaptor</h3>" +
                 "<div style=\"display: inline-block; margin: 0 auto; text-align: left;\">";
             data = data.manifest || {};
 
@@ -1795,6 +1940,8 @@ var app = new function() {
      */
     this.init = function() {
 
+        uiController.init();
+
         USE_HARDWARE_ACCELERATION = transformsSupport();
 
         setElements(); // variables setup
@@ -1804,7 +1951,6 @@ var app = new function() {
 
         TREE_ROOT = new TreeRoot();
 
-        uiController.init();
         //uiController.switchConnectForm();
 
     }

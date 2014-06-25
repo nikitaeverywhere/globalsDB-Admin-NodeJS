@@ -1,4 +1,4 @@
-var dataAdapter = new function() {
+var dataAdaptor = new function() {
 
     var VALUE_PREFIX = "___$", // special property prefix to store node value in JS object for GlobalsDB database.
         JUMPER_PREFIX = "___J",
@@ -14,7 +14,7 @@ var dataAdapter = new function() {
     var dataTree = { // @debug
 
         root: {
-            ___$: "<span style=\"word-break: normal; font-size: 14px;\">GlobalsDB Admin<br/><br/>Welcome to GlobalsDB Admin demo!<br/>" +
+            ___$: "<span style=\"word-break: normal; font-size: 12px;\">GlobalsDB Admin<br/><br/>Welcome to GlobalsDB Admin demo!<br/>" +
                 "Use arrow keys UP and DOWN to choose <br/>" +
                 "node, LEFT and RIGHT to choose action,</br>" +
                 "ENTER to select, BACKSPACE to back.<br/>" +
@@ -555,9 +555,86 @@ var dataAdapter = new function() {
 
     };
 
+    /**
+     * Clears node (removes child) from data tree without any server actions.
+     */
+    this.forceClear = function(path) {
+
+        clearObject(path);
+        setCompleted(path, false);
+        _this.childUpdated(path.slice(1));
+
+    };
+
     this.getDataTree = function() {
 
         return dataTree;
+
+    };
+
+    /**
+     * Copies source node content to destination path.
+     *
+     * @param {Array} sourcePathArray
+     * @param {Array} destinationPathArray
+     * @param {function=} handler
+     */
+    this.copyNode = function(sourcePathArray, destinationPathArray, handler) {
+
+        var realSrcPathArr = sourcePathArray.slice(1),
+            realDestPathArr = destinationPathArray.slice(1);
+
+        var srcObj = getTreeObjectByPath(sourcePathArray),
+            destObj = getTreeObjectByPath(destinationPathArray.slice(0, destinationPathArray.length-1));
+
+        var copyObject = function(sourceObject) {
+
+            if (typeof sourceObject !== "object") return sourceObject;
+
+            var obj = {};
+
+            for (var i in sourceObject) {
+                if (!sourceObject.hasOwnProperty(i)) continue;
+                obj[i] = copyObject(sourceObject[i]);
+            }
+
+            return obj;
+
+        };
+
+        updateTreeSubLevel(destinationPathArray.slice(0, destinationPathArray.length - 1),
+            destinationPathArray[destinationPathArray.length - 1]);
+
+        if (typeof destObj === "object") {
+            setTimeout(function() {
+                console.log(copyObject(srcObj));
+                destObj[destinationPathArray[destinationPathArray.length-1]] = copyObject(srcObj);
+                _this.childUpdated(realDestPathArr.slice(0, realDestPathArr.length - 1));
+                _this.nodeValueUpdated(realDestPathArr);
+            }, 1); // because "clearObject" function are calling from engine
+        }
+
+//        server.send({
+//            request: "copyNode",
+//            data: {
+//                fromPathArray: realSrcPathArr,
+//                toPathArray: realDestPathArr
+//            }
+//        }, function(response) {
+//
+//            if (response && !response.error) {
+
+
+
+        if (typeof handler === "function") handler(true);
+
+
+//            } else {
+//                console.log("Wrong response", response);
+//                if (typeof handler === "function") handler(false);
+//            }
+//
+//        });
 
     };
 

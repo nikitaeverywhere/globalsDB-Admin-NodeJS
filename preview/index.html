@@ -13,19 +13,13 @@
     <meta name="mobile-web-app-capable" content="yes"/>
     <meta name="apple-mobile-web-app-capable" content="yes"/>
 
-    <!-- @if NODE_ENV == "DEVELOPMENT" -->
-        <link rel="stylesheet" href="css/index.css"/>
-        <link rel="stylesheet" href="css/ui.css"/>
-        <script type="text/javascript" src="js/uiController.js"></script>
-        <script type="text/javascript" src="js/server.js"></script>
-        <script type="text/javascript" src="js/dataAdapter.js"></script>
-        <script type="text/javascript" src="js/index.js"></script>
-    <!-- @endif -->
+    <link rel="stylesheet" href="css/index.css"/>
+    <link id="themeLink" rel="stylesheet"/>
 
-    <!-- @if NODE_ENV == "PRODUCTION" -->
-        <link rel="stylesheet" href="css/app.css"/>
-        <script type="text/javascript" src="js/app.js"></script>
-    <!-- @endif -->
+    <script type="text/javascript" src="js/uiController.js"></script>
+    <script type="text/javascript" src="js/server.js"></script>
+    <script type="text/javascript" src="js/dataAdaptor.js"></script>
+    <script type="text/javascript" src="js/index.js"></script>
 
 </head>
 
@@ -72,7 +66,7 @@
                             </tr>
                             <tr>
                                 <td colspan="2">
-                                    <input id="connectButton" type="submit" value="Connect"/>
+                                    <p><input id="connectButton" type="submit" value="Connect"/></p>
                                 </td>
                             </tr>
                             </tbody>
@@ -110,15 +104,15 @@
                                     <td><label for="loginDatabase">Database: </label></td>
                                     <td style="text-align: right;">
                                         <select id="loginDatabase">
-                                            <option>Test1</option>
-                                            <option>Test2</option>
-                                            <option>Test3</option>
+                                            <option>There</option>
+                                            <option>Is</option>
+                                            <option>Nothing</option>
                                         </select>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td colspan="2">
-                                        <input id="loginButton" type="submit" value="Login"/>
+                                        <p><input id="loginButton" type="submit" value="Login"/></p>
                                     </td>
                                 </tr>
                             </tbody>
@@ -148,7 +142,9 @@
                                 </tr>
                                 <tr>
                                     <td><label for="addNodeValue">Value: </label></td>
-                                    <td><input id="addNodeValue" type="text" value=""/></td>
+                                    <td>
+                                        <textarea id="addNodeValue"></textarea>
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td colspan="2">
@@ -157,6 +153,45 @@
                                                value="Cancel" onclick="uiController.hideUI();"/>
                                     </td>
                                 </tr>
+                            </tbody>
+                        </table>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div id="ui-copyNode" class="centralizer">
+            <div>
+                <div>
+                    <form onsubmit="uiController.handle.copyNode(); return false;"
+                          class="inlineBlock">
+                        <table>
+                            <thead>
+                            <tr>
+                                <td colspan="2">
+                                    <h1>Paste node</h1>
+                                </td>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td colspan="2">Source: <span id="copySourcePath"></span></td>
+                            </tr>
+                            <tr>
+                                <td>Destination: <span id="copyDestinationPathPart"></span></td>
+                                <td>
+                                    <label>
+                                        <input id="copyDestinationPathNode"
+                                               placeholder="node name" type="text"/>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2">
+                                    <input id="copyNodeButton" type="submit" value="Paste"/>
+                                    <input id="cancelCopyAddButton" type="button"
+                                           value="Cancel" onclick="uiController.hideUI();"/>
+                                </td>
+                            </tr>
                             </tbody>
                         </table>
                     </form>
@@ -237,9 +272,17 @@
                         <h1>About</h1>
                     </div>
                     <div>
+                        <hr/>
+                        <h1>Settings</h1>
+                        <div>
+                            <b class="bigger">Theme&nbsp;</b>
+                            <span id="themesBlock"></span>
+                        </div>
+                    </div>
+                    <p>
                         <input id="closeAbout" type="button" value="Close"
                                onclick="uiController.hideUI();"/>
-                    </div>
+                    </p>
                 </div>
             </div>
         </div>

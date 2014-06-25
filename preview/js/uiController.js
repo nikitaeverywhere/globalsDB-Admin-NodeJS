@@ -3,6 +3,7 @@ var uiController = new function() {
     var _this = this,
         UI_ELEMENT = null,
         UI_SHOWN = false,
+        HINT_CLASS_NAME = "hint",
         ELEMENTS = {
             infoBar: null,
             connect: null,
@@ -12,8 +13,11 @@ var uiController = new function() {
             messageHead: null,
             messageBody: null,
             editNode: null,
+            copyNode: null,
             jumpNode: null,
-            about: null
+            about: null,
+            themesBlock: null,
+            themeLink: null
         },
         FIELDS = { // @autofill
             connectHostname: null,
@@ -29,6 +33,9 @@ var uiController = new function() {
             addNodeValue: null,
             editNodeName: null,
             editNodeValue: null,
+            copySourcePath: null,
+            copyDestinationPathPart: null,
+            copyDestinationPathNode: null,
             jumpNodeName: null,
             aboutField: null
         };
@@ -69,7 +76,55 @@ var uiController = new function() {
 
     var showLoadingAnimation = function(enable) {
 
-        ELEMENTS.infoBar.innerHTML = (enable)?"<img src=\"img/loading-black.gif\"/>":"";
+        ELEMENTS.infoBar.innerHTML = (enable)?"<img class=\"loadingImage\" " +
+            "src=\"img/loading-black.gif\"/>":"";
+
+    };
+
+    /**
+     * Show hint.
+     *
+     * @param html
+     */
+    this.hint = function(html) {
+
+        var o = document.createElement("DIV"),
+            direction = { x: 0, y: -1 },
+            stepsLeft = 55,
+            FADE_END_STEPS = 25,
+            FADE_END_SLEEP = 20,
+            FADE_START = 9,
+            SPEED = 5,
+            INITIAL_STEPS = stepsLeft,
+            interval;
+
+        o.className = HINT_CLASS_NAME;
+        o.innerHTML = html;
+        o.style["opacity"] = 0;
+
+        interval = setInterval(function() {
+
+            o.style[direction.x > 0 ? "left" : "right"] =
+                (parseFloat(o.style[direction.x > 0 ? "left" : "right"]) || 0)
+                    + Math.sin(Math.PI/2*Math.max(stepsLeft - FADE_END_STEPS, 0)/(INITIAL_STEPS - FADE_END_STEPS))
+                *SPEED*direction.x + "px";
+            o.style[direction.y > 0 ? "top" : "bottom"] =
+                (parseFloat(o.style[direction.y > 0 ? "top" : "bottom"]) || 0)
+                    - Math.sin(Math.PI/2*Math.max(stepsLeft - FADE_END_STEPS, 0)/(INITIAL_STEPS - FADE_END_STEPS))
+                *SPEED*direction.y + "px";
+
+            stepsLeft--;
+            o.style["opacity"] = Math.min((INITIAL_STEPS - stepsLeft)/FADE_START,
+                    stepsLeft/(FADE_END_STEPS - FADE_END_SLEEP), 1);
+
+            if (stepsLeft < 0) {
+                o.parentNode.removeChild(o);
+                clearInterval(interval);
+            }
+
+        }, 25);
+
+        document.body.appendChild(o);
 
     };
 
@@ -113,6 +168,7 @@ var uiController = new function() {
         _this.showUI();
         targetElement(ELEMENTS.addNode);
         timeFocus(FIELDS.addNodeName);
+        FIELDS.addNodeValue.value = "";
 
     };
 
@@ -123,6 +179,16 @@ var uiController = new function() {
         _this.showUI();
         targetElement(ELEMENTS.editNode);
         timeFocus(FIELDS.editNodeValue);
+
+    };
+
+    this.switchCopyNodeForm = function(fromPath, toPathPart) {
+
+        FIELDS.copySourcePath.innerHTML = fromPath;
+        FIELDS.copyDestinationPathPart.innerHTML = toPathPart;
+        _this.showUI();
+        targetElement(ELEMENTS.copyNode);
+        timeFocus(FIELDS.copyDestinationPathNode);
 
     };
 
@@ -239,16 +305,16 @@ var uiController = new function() {
             actions.connect.setWaitingState(true);
             _this.hideUI();
 
-            server.send(data, function(responce) {
+            server.send(data, function(response) {
 
                 actions.connect.setWaitingState(false);
-                if (responce && responce.error === 0) {
+                if (response && response.error === 0) {
 
                     _this.hideUI();
-                    app.resetTreeRoot(null, data.username);
+                    app.resetTreeRoot(null, data.namespace, data.username);
 
                 } else {
-                    _this.showMessage("Login error", "Unable to login. Server reason: " + (responce.reason || "[none]"));
+                    _this.showMessage("Login error", "Unable to login. Server reason: " + (response.reason || "[none]"));
                     _this.switchLoginForm();
                 }
 
@@ -275,6 +341,13 @@ var uiController = new function() {
             }
 
             app.handle.addNode(name, value);
+
+        },
+
+        copyNode: function() {
+
+            _this.hideUI();
+            app.handle.copyNode(FIELDS.copyDestinationPathNode.value);
 
         },
 
@@ -322,6 +395,34 @@ var uiController = new function() {
 
     };
 
+    this.updateSettings = function() {
+
+        // update theme settings
+
+        var theme = localStorage.getItem("settings-theme") || THEMES[0] || "classic",
+            setUp = ELEMENTS.themesBlock.innerHTML.indexOf(">") > 0;
+
+        if (!setUp) for (var i in THEMES) {
+            ELEMENTS.themesBlock.innerHTML += "<label onclick=\"uiController.updateSettings();\">" +
+                "<input type=\"radio\" name=\"settings-" +
+                "theme\" value=\"" + THEMES[i] + "\"/" + ((theme === THEMES[i])?" checked":"") +
+                "> " + THEMES[i] + "</label>&nbsp; ";
+        }
+
+        var els = document.getElementsByName("settings-theme"), e;
+
+        for (e in els) {
+            if (els[e].checked) {
+                theme = els[e].value;
+            }
+        }
+
+        ELEMENTS.themeLink.setAttribute("href", "css/theme-" + theme + ".css");
+        document.body.appendChild(e = document.createElement("DIV")); e.parentNode.removeChild(e);
+        localStorage.setItem("settings-theme", theme);
+
+    };
+
     this.init = function() {
 
         UI_ELEMENT = document.getElementById("ui");
@@ -332,9 +433,12 @@ var uiController = new function() {
         ELEMENTS.messageHead = document.getElementById("ui-message-head");
         ELEMENTS.messageBody = document.getElementById("ui-message-body");
         ELEMENTS.addNode = document.getElementById("ui-addNode");
+        ELEMENTS.copyNode = document.getElementById("ui-copyNode");
         ELEMENTS.editNode = document.getElementById("ui-editNode");
         ELEMENTS.jumpNode = document.getElementById("ui-jumpNode");
         ELEMENTS.about = document.getElementById("ui-about");
+        ELEMENTS.themesBlock = document.getElementById("themesBlock");
+        ELEMENTS.themeLink = document.getElementById("themeLink");
 
         for (var i in FIELDS) {
             if (!FIELDS.hasOwnProperty(i)) continue;
@@ -346,6 +450,8 @@ var uiController = new function() {
         if (document.addEventListener) {
             document.addEventListener("focus", onElementFocused, true);
         }
+
+        _this.updateSettings();
 
         initElements();
 
